@@ -1050,7 +1050,6 @@ input, textarea { -webkit-appearance: none; border-radius: 0; }
   .desktop-only-icon { display: flex !important; }
 
   /* Hero */
-  /* hero-m removed — using .h-root */
   .hero-m-head { font-size: clamp(100px, 16vw, 200px); }
   .hero-m-sub { max-width: 480px; }
   .hero-m-cta { gap: 12px; }
@@ -1060,7 +1059,7 @@ input, textarea { -webkit-appearance: none; border-radius: 0; }
   .coll-scroll-wrap { overflow-x: visible; padding: 0 var(--side); }
   .coll-strip {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 12px;
     width: auto;
   }
@@ -1074,9 +1073,6 @@ input, textarea { -webkit-appearance: none; border-radius: 0; }
   .feat-thumbs { grid-column: 2; }
   .feat-info { grid-column: 1; padding-top: 0; }
   .feat-img { aspect-ratio: 3/4; }
-
-  /* Trending */
-
 
   /* Brand — desktop: side by side */
   .brand-strip { padding: 72px 48px 68px; display: grid; grid-template-columns: 200px 1fr; gap: 40px; align-items: start; }
@@ -1107,20 +1103,16 @@ input, textarea { -webkit-appearance: none; border-radius: 0; }
   .search-results-grid { grid-template-columns: repeat(3, 1fr); }
 
   /* Checkout */
-  .checkout-body { display: grid; grid-template-columns: 1fr 380px; min-height: calc(100vh - 60px); min-height: calc(100dvh - 60px); }
+  .checkout-body { display: grid; grid-template-columns: 1fr 380px; min-height: calc(100dvh - 60px); }
   .checkout-form-side { padding: 40px 48px 60px; border-right: 1px solid rgba(255,255,255,0.06); overflow-y: auto; }
-  .checkout-order-side { padding: 40px; border-top: none; background: rgba(255,255,255,0.01); position: sticky; top: 0; height: fit-content; max-height: 100vh; max-height: 100dvh; overflow-y: auto; }
+  .checkout-order-side { padding: 40px; border-top: none; background: rgba(255,255,255,0.01); position: sticky; top: 0; height: fit-content; max-height: 100dvh; overflow-y: auto; }
   .checkout-field-row { grid-template-columns: 1fr 1fr; gap: 16px; }
-  /* checkout-steps always visible now */
 
   /* Account/Notif panels */
-  .account-panel, .notif-panel { width: 380px; 
-  z-index: 600;
-}
-}
+  .account-panel, .notif-panel { width: 380px; z-index: 600; }
 
-@media (min-width: 1200px) {
-  .coll-strip { grid-template-columns: repeat(6, 1fr); }
+  /* Mobile nav: hidden on all ≥769px screens */
+  .mobile-nav-bottom { display: none !important; }
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -4667,8 +4659,8 @@ select.checkout-field-input {
   flex-shrink: 0;
 }
 
-/* ── Desktop ── */
-@media (min-width: 769px) {
+/* ── Desktop (1024px+) ── */
+@media (min-width: 1024px) {
   .sg-section { padding: 40px 48px 0; }
   .sg-grid-2col {
     grid-template-columns: repeat(4, 1fr);
