@@ -36,10 +36,8 @@ const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://rareease.com').repl
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  // maximumScale / userScalable intentionally NOT set — disabling pinch-to-zoom
-  // violates WCAG 2.1 SC 1.4.4 (Resize Text, Level AA) and harms users with
-  // low vision. iOS/Android respect this and will not over-zoom on input focus
-  // as long as font-size on inputs is >= 16px (enforced in globals.css).
+  maximumScale: 1,
+  userScalable: false,
   themeColor: '#000000',
 };
 
