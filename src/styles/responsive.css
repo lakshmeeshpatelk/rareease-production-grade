@@ -160,9 +160,10 @@ html, body { overscroll-behavior-x: none; }
   }
 
   /* ── pp-* product/collection pages ── */
-  .pp-layout          { grid-template-columns: 1fr; gap: 24px; padding: 20px 16px; }
-  .pp-details         { padding: 0; }
-  .pp-title           { font-size: 32px; }
+  .pp-layout          { grid-template-columns: 1fr; gap: 0; padding: 0; }
+  .pp-images          { order: 1; }
+  .pp-details         { order: 2; padding: 20px 16px; }
+  .pp-title           { font-size: 24px; }
   .pp-related-grid    { grid-template-columns: repeat(2, 1fr); }
   .pp-col-grid        { grid-template-columns: repeat(2, 1fr); padding: 16px; }
   .pp-cat-badge       { font-size: 60px; }
@@ -172,6 +173,7 @@ html, body { overscroll-behavior-x: none; }
   .pp-topbar { padding-top: max(12px, env(safe-area-inset-top, 12px)); }
   .pp-back   { padding-bottom: max(32px, calc(env(safe-area-inset-bottom, 0px) + 32px)); }
   .pp-col-grid { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); }
+  .pp-main-img { aspect-ratio: 1/1; }
 
   /* ── sg-filter-bar touch targets ── */
   .sg-filter-pill { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
