@@ -75,7 +75,7 @@ export default function Hero() {
   useEffect(() => {
     let cancelled = false;
     slides.forEach((slide, i) => {
-      const img = new Image();
+      const img = new window.Image();
       img.src = slide.src;
       img.onload = () => {
         if (!cancelled) setLoaded(prev => { const n = [...prev]; n[i] = true; return n; });
