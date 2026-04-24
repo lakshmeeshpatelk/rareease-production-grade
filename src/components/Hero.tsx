@@ -166,7 +166,7 @@ export default function Hero() {
               <button
                 key={i}
                 className={`h-dot${i === active ? ' h-dot--active' : ''}`}
-                onClick={() => goTo(i)}
+                onClick={() => setActive(i)}
                 aria-label={`Slide ${i + 1}`}
               />
             ))}
