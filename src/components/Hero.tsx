@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { useUIStore } from '@/store/uiStore';
 
 const DEFAULT_SLIDES = [
@@ -37,18 +38,17 @@ export default function Hero() {
   const [slides, setSlides] = useState<typeof DEFAULT_SLIDES>(
     () => DEFAULT_SLIDES.filter(s => s.active)
   );
-  const SLIDES = slides;
-  const slideCount = SLIDES.length;
+  const slideCount = slides.length;
   const [active, setActive] = useState(0);
-  const [loaded, setLoaded] = useState<boolean[]>(new Array(slideCount).fill(false));
+  const [loaded, setLoaded] = useState<boolean[]>(() => new Array(slides.length).fill(false));
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
 
-  const goTo = useCallback((idx: number) => {
-    setActive(idx);
-    clearTimeout(timerRef.current);
-  }, []);
+  // Reset loaded array whenever slide list changes (e.g. after Supabase fetch)
+  useEffect(() => {
+    setLoaded(new Array(slides.length).fill(false));
+  }, [slides]);
 
   const goNext = useCallback(() => {
     setActive(p => (p + 1) % slideCount);
@@ -71,16 +71,18 @@ export default function Hero() {
     });
   }, []);
 
-  // Preload all images
+  // Preload all images; cleanup prevents setState on unmounted component
   useEffect(() => {
-    SLIDES.forEach((slide, i) => {
+    let cancelled = false;
+    slides.forEach((slide, i) => {
       const img = new Image();
       img.src = slide.src;
-      img.onload = () => setLoaded(prev => { const n = [...prev]; n[i] = true; return n; });
+      img.onload = () => {
+        if (!cancelled) setLoaded(prev => { const n = [...prev]; n[i] = true; return n; });
+      };
     });
-  // SLIDES reference is stable per render — only re-run when slide count changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slideCount]);
+    return () => { cancelled = true; };
+  }, [slides]);
 
   const scrollToTrending = () => {
     document.getElementById('top-sellers')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -101,8 +103,8 @@ export default function Hero() {
       }}
     >
       {/* ── Image slides — stacked, fade between ── */}
-      <div className="h-slides">
-        {SLIDES.map((slide, i) => (
+      <div className="h-slides" aria-live="polite" aria-atomic="true">
+        {slides.map((slide, i) => (
           <div
             key={i}
             className={`h-slide${i === active ? ' h-slide--active' : ''}`}
@@ -112,13 +114,15 @@ export default function Hero() {
             {!loaded[i] && (
               <div className="h-slide-skeleton" aria-hidden="true" />
             )}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={slide.src}
-              alt={slide.label}
+              alt={i === active ? slide.label : ''}
+              fill
               className={`h-slide-img${loaded[i] ? ' h-slide-img--loaded' : ''}`}
               draggable={false}
-              {...(i === 0 ? { fetchPriority: 'high', loading: 'eager' } : { loading: 'lazy' })}
+              priority={i === 0}
+              sizes="100vw"
+              style={{ objectFit: 'cover' }}
             />
             {/* Dark gradient overlay — bottom heavy so text reads */}
             <div className="h-slide-overlay" />
@@ -139,9 +143,9 @@ export default function Hero() {
 
         {/* Current slide label */}
         <div className="h-slide-label">
-          <span className="h-slide-label-name">{SLIDES[active].label}</span>
+          <span className="h-slide-label-name">{slides[active].label}</span>
           <span className="h-slide-label-sep">·</span>
-          <span className="h-slide-label-sub">{SLIDES[active].sub}</span>
+          <span className="h-slide-label-sub">{slides[active].sub}</span>
         </div>
 
         {/* Main headline */}
@@ -158,7 +162,7 @@ export default function Hero() {
         {/* Dot indicators + counter */}
         <div className="h-indicator">
           <div className="h-dots">
-            {SLIDES.map((_, i) => (
+            {slides.map((_, i) => (
               <button
                 key={i}
                 className={`h-dot${i === active ? ' h-dot--active' : ''}`}
@@ -170,7 +174,7 @@ export default function Hero() {
           <span className="h-counter">
             <strong>{String(active + 1).padStart(2, '0')}</strong>
             <span className="h-counter-sep" />
-            {String(SLIDES.length).padStart(2, '0')}
+            {String(slides.length).padStart(2, '0')}
           </span>
         </div>
 

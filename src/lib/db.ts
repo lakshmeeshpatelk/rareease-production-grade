@@ -4,19 +4,19 @@
  * Import from here instead of mockData / adminData everywhere.
  */
 
-import { createClient } from '@/lib/supabase';
+import { createClient as createBrowserClient } from '@/lib/supabase';
 import { createAdminClient } from '@/lib/supabaseAdmin';
 import type {
   Product, Category, Variant, Inventory,
   Order, OrderItem, Review,
-  WishlistItem, Address, Coupon, ExchangeRequest,
+  Address, Coupon, ExchangeRequest,
 } from '@/types';
 import type { AdminOrder, AdminReview, ExchangeRequest as AdminExchange, HeroSlide, AnnouncementMsg } from '@/lib/adminData';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function supabase() {
-  return createClient();
+  return createBrowserClient();
 }
 
 // ─── CATEGORIES ───────────────────────────────────────────────────────────────
@@ -122,7 +122,7 @@ export async function fetchProductsByIds(ids: string[]): Promise<Product[]> {
 }
 
 /** Flatten Supabase's nested structure into our Product type */
-function normaliseProduct(raw: Record<string, unknown>): Product {
+export function normaliseProduct(raw: Record<string, unknown>): Product {
   const variants: Variant[] = ((raw.variants as Record<string, unknown>[]) ?? []).map((v) => ({
     id: v.id as string,
     product_id: v.product_id as string,

@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = product.description ?? product.tagline ?? `Shop ${product.name} at Rare Ease — premium Indian streetwear.`;
 
   // Resolve primary image: DB media → null
-  const sortedMedia = (product.media ?? []).sort((a: any, b: any) => a.position - b.position);
+  const sortedMedia = (product.media ?? []).sort((a: { position: number }, b: { position: number }) => a.position - b.position);
   const primaryImage = sortedMedia[0]?.url ?? null;
 
   const ogImages = primaryImage
@@ -80,5 +80,40 @@ export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
   const product = await getProduct(slug);
   if (!product) notFound();
-  return <ProductPageClient product={product} />;
+
+  // Build Product JSON-LD for Google Shopping / rich results
+  const sortedMedia = (product.media ?? []).sort((a: { position: number }, b: { position: number }) => a.position - b.position);
+  const primaryImage = sortedMedia[0]?.url ?? null;
+  const totalStock = (product.variants ?? []).reduce((sum: number, v: { inventory?: { quantity?: number; reserved?: number }[] | { quantity?: number; reserved?: number } }) => {
+    const inv = Array.isArray(v.inventory) ? v.inventory[0] : v.inventory;
+    return sum + Math.max(0, (inv?.quantity ?? 0) - (inv?.reserved ?? 0));
+  }, 0);
+
+  const productJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description ?? product.tagline ?? `Shop ${product.name} at Rare Ease.`,
+    url: `${APP_URL}/products/${slug}`,
+    ...(primaryImage && { image: primaryImage }),
+    brand: { '@type': 'Brand', name: 'Rare Ease' },
+    offers: {
+      '@type': 'Offer',
+      url: `${APP_URL}/products/${slug}`,
+      priceCurrency: 'INR',
+      price: product.price,
+      availability: totalStock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      seller: { '@type': 'Organization', name: 'Rare Ease' },
+    },
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
+      <ProductPageClient product={product} />
+    </>
+  );
 }

@@ -40,7 +40,7 @@ interface AdminState {
   toast: { msg: string; type: 'success' | 'error' } | null;
   // auth
   login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   checkAuth: () => void;
   setSection: (s: string) => void;
   // loaders
@@ -133,42 +133,9 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   loadProducts: async () => {
     set(s => ({ loading: { ...s.loading, products: true } }));
     try {
+      const { normaliseProduct } = await import('@/lib/db');
       const raw: Record<string, unknown>[] = await adminFetch('/api/admin/products');
-      const products: Product[] = raw.map(p => {
-        const variants = ((p.variants as Record<string, unknown>[]) ?? []).map(v => ({
-          id: v.id as string,
-          product_id: v.product_id as string,
-          size: v.size as Product['variants'] extends (infer V)[] ? V extends { size: infer S } ? S : never : never,
-          sku: v.sku as string,
-        }));
-        const inventory = ((p.variants as Record<string, unknown>[]) ?? []).flatMap(v => {
-          // Supabase returns inventory as object not array due to UNIQUE on variant_id
-          const invRaw = v.inventory;
-          const invArr: Record<string, unknown>[] = Array.isArray(invRaw)
-            ? invRaw
-            : invRaw && typeof invRaw === 'object'
-              ? [invRaw as Record<string, unknown>]
-              : [];
-          return invArr.map(inv => ({
-            id: inv.id as string,
-            variant_id: (inv.variant_id as string) ?? (v.id as string),
-            quantity: inv.quantity as number,
-            reserved: inv.reserved as number,
-          }));
-        });
-        const media = ((p.product_media as Record<string, unknown>[]) ?? [])
-          .sort((a, b) => (a.position as number) - (b.position as number))
-          .map(m => ({
-            id: m.id as string,
-            product_id: p.id as string,
-            url: m.url as string,
-            type: (m.type as 'image' | 'video') ?? 'image',
-            position: m.position as number,
-          }));
-        const { variants: _v, product_media: _m, ...rest } = p;
-        return { ...(rest as unknown as Product), variants, inventory, media };
-      });
-      set({ products });
+      set({ products: raw.map(normaliseProduct) });
     } catch (e) { console.error('loadProducts:', e); }
     set(s => ({ loading: { ...s.loading, products: false } }));
   },

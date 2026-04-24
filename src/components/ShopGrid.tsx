@@ -43,12 +43,10 @@ function ProductCard({ product, priority = false }: { product: Product; priority
       <div className="pc-img-wrap">
         {hasPhoto ? (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <Image src={imgs.primary!} alt={product.name} fill sizes="(max-width:768px) 50vw, 25vw" style={{objectFit:'cover'}}
               className={`pc-img${hovered && imgs.secondary ? ' pc-img--hide' : ''}`}
               loading={priority ? 'eager' : 'lazy'} />
             {imgs.secondary && (
-              // eslint-disable-next-line @next/next/no-img-element
               <Image src={imgs.secondary!} alt={product.name} fill sizes="(max-width:768px) 50vw, 25vw" style={{objectFit:'cover'}}
                 className={`pc-img pc-img--alt${hovered ? ' pc-img--show' : ''}`}
                 loading="lazy" />
@@ -318,8 +316,7 @@ export default function ShopGrid() {
             <button key={cat.id} className="sg-cat-pill" onClick={() => oc(cat.id)}>
               <div className="sg-cat-pill-img">
                 {cat.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={cat.image_url} alt={cat.name} />
+                  <Image src={cat.image_url} alt={cat.name} fill sizes="48px" style={{ objectFit: 'cover' }} />
                 ) : (
                   <div className="sg-cat-pill-placeholder">RE</div>
                 )}

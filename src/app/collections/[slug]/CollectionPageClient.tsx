@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useCartStore } from '@/store/cartStore';
 import { useUIStore } from '@/store/uiStore';
@@ -104,10 +105,9 @@ export default function CollectionPageClient({ category, products }: { category:
             const imgs = getProductImages(p);
             return (
               <Link key={p.id} href={`/products/${p.slug}`} className="pp-col-card">
-                <div className="pp-col-img">
+                <div className="pp-col-img" style={{ position: 'relative' }}>
                   {imgs.primary ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={imgs.primary} alt={p.name} />
+                    <Image src={imgs.primary} alt={p.name} fill sizes="(max-width:768px) 50vw, 25vw" style={{ objectFit: 'cover' }} />
                   ) : (
                     <div className="pp-related-placeholder">
                       {getProductInitials(p)}

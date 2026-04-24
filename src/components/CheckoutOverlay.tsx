@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useUIStore } from '@/store/uiStore';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, calcShipping } from '@/lib/utils';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 import { checkPincode, type PincodeResult } from '@/lib/pincode';
 
@@ -16,11 +16,6 @@ interface Address {
 
 type PayMethod = 'online' | 'cod';
 
-// ── Shipping threshold ───────────────────────────────────────────
-const FREE_SHIPPING_THRESHOLD = 1499;
-function calcShipping(subtotal: number): number {
-  return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 99;
-}
 // ── Coupons — validated server-side via /api/coupons/validate ──────────────
 type CouponData = { type: 'percent' | 'flat'; value: number; label: string; min_order?: number };
 
@@ -342,7 +337,7 @@ export default function CheckoutOverlay() {
 
       if (!paymentSessionId) throw new Error('No payment session returned');
 
-      // Load Cashfree JS SDK from CDN (same pattern as Razorpay)
+      // Load Cashfree JS SDK from CDN
       await loadCashfreeScript();
 
       const cashfree = new window.Cashfree({
@@ -732,7 +727,7 @@ export default function CheckoutOverlay() {
   );
 }
 
-// Load Cashfree JS SDK from CDN (mirrors the old Razorpay script loader)
+// Load Cashfree JS SDK from CDN
 async function loadCashfreeScript(): Promise<void> {
   if (typeof window.Cashfree !== 'undefined') return;
   return new Promise((resolve, reject) => {

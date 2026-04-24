@@ -13,7 +13,6 @@ export default function Footer() {
     <footer className="footer-m">
       {/* Logo */}
       <div className="footer-m-logo">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <Image src="/logo-text.svg" alt="Rare Ease" className="footer-logo-img" width={160} height={28} />
         <p className="footer-m-tagline">
           Premium streetwear for those who exist between worlds.<br />

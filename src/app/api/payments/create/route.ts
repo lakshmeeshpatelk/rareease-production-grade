@@ -6,6 +6,7 @@ import { createClient as createServerClient } from '@/lib/supabaseServer';
 import { isRateLimited, getIP, LIMITS } from '@/lib/rateLimit';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 import { captureException, setRequestContext } from '@/lib/monitoring';
+import { SHIPPING_FREE_THRESHOLD, SHIPPING_COST } from '@/lib/utils';
 
 const COD_MAX_AMOUNT      = 2000;
 const MAX_QTY_PER_PRODUCT = 10;
@@ -52,9 +53,7 @@ export async function POST(req: NextRequest) {
       userId = authedUser?.id ?? null;
     } catch { /* guest checkout */ }
 
-    const serverItems: Array<OrderItemInput & { serverPrice: number; productName: string }> = [];
-    let serverSubtotal = 0;
-
+    // Validate item inputs before any DB calls
     for (const item of items as OrderItemInput[]) {
       if (!item.productId || !item.variantId || item.quantity < 1) {
         return NextResponse.json({ error: 'Invalid item in cart' }, { status: 400 });
@@ -65,15 +64,30 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
+    }
 
-      const { data: product } = await supabase
-        .from('products').select('price, name').eq('id', item.productId).eq('is_active', true).single();
+    // Batch fetch all products and inventory in 2 queries instead of 2×N
+    const productIds = (items as OrderItemInput[]).map(i => i.productId);
+    const variantIds = (items as OrderItemInput[]).map(i => i.variantId);
+
+    const [{ data: productsData }, { data: inventoryData }] = await Promise.all([
+      supabase.from('products').select('id, price, name').in('id', productIds).eq('is_active', true),
+      supabase.from('inventory').select('variant_id, quantity, reserved').in('variant_id', variantIds),
+    ]);
+
+    const productMap = new Map((productsData ?? []).map(p => [p.id as string, p]));
+    const inventoryMap = new Map((inventoryData ?? []).map(inv => [inv.variant_id as string, inv]));
+
+    const serverItems: Array<OrderItemInput & { serverPrice: number; productName: string }> = [];
+    let serverSubtotal = 0;
+
+    for (const item of items as OrderItemInput[]) {
+      const product = productMap.get(item.productId);
       if (!product) {
         return NextResponse.json({ error: 'Product not found or no longer available' }, { status: 400 });
       }
 
-      const { data: inv } = await supabase
-        .from('inventory').select('quantity, reserved').eq('variant_id', item.variantId).single();
+      const inv = inventoryMap.get(item.variantId);
       if (!inv) {
         return NextResponse.json({ error: 'Product variant not found' }, { status: 400 });
       }
@@ -140,7 +154,7 @@ export async function POST(req: NextRequest) {
     }
 
     const subtotalAfterDiscount = serverSubtotal - discountAmount;
-    const shipping = subtotalAfterDiscount >= 1499 ? 0 : 99;
+    const shipping = subtotalAfterDiscount >= SHIPPING_FREE_THRESHOLD ? 0 : SHIPPING_COST;
     const total    = subtotalAfterDiscount + shipping;
 
     const orderId = `RE${Date.now()}${Math.random().toString(36).slice(2, 5).toUpperCase()}`;

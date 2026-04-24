@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useUIStore } from '@/store/uiStore';
 import { useProductsStore } from '@/store/productsStore';
-import { formatPrice, getInventoryForVariant } from '@/lib/utils';
+import { formatPrice, getInventoryForVariant, SHIPPING_FREE_THRESHOLD, SHIPPING_COST } from '@/lib/utils';
 import CheckoutOverlayTrigger from './CheckoutOverlayTrigger';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 import { useFocusTrap } from '@/lib/useFocusTrap';
@@ -25,7 +25,7 @@ export default function CartDrawer() {
     return qty > 0 ? qty : 0;
   };
   const subtotal   = total();
-  const shipping   = subtotal >= 1499 ? 0 : 99;
+  const shipping   = subtotal >= SHIPPING_FREE_THRESHOLD ? 0 : SHIPPING_COST;
   const grandTotal = subtotal + shipping;
 
   return (
@@ -74,7 +74,7 @@ export default function CartDrawer() {
                     <div className="shipping-free-label">✦ Free shipping unlocked on this order</div>
                   ) : (
                     <div className="shipping-free-label">
-                      Add {formatPrice(1499 - subtotal)} more for free shipping
+                      Add {formatPrice(SHIPPING_FREE_THRESHOLD - subtotal)} more for free shipping
                     </div>
                   )}
                 </div>

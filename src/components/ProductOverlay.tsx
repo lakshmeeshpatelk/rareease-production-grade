@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { trackProductView } from './RecentlyViewed';
 import SizeGuide from './SizeGuide';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -10,20 +11,23 @@ import { useWishlistStore } from '@/store/wishlistStore';
 import { formatPrice, getInventoryForVariant } from '@/lib/utils';
 import { useProductsStore } from '@/store/productsStore';
 import { getProductImages, getProductInitials } from '@/lib/productImage';
-import { PRODUCT_PHOTO_MAP } from '@/lib/productPhotos';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 
 function Stars({ rating, size = 13 }: { rating: number; size?: number }) {
   return (
-    <span style={{ display: 'inline-flex', gap: 2 }}>
+    <span
+      style={{ display: 'inline-flex', gap: 2 }}
+      role="img"
+      aria-label={`${Math.round(rating)} out of 5 stars`}
+    >
       {[1,2,3,4,5].map(i => (
-        <span key={i} style={{ fontSize: size, color: i <= Math.round(rating) ? '#fff' : 'rgba(255,255,255,0.2)' }}>★</span>
+        <span key={i} aria-hidden="true" style={{ fontSize: size, color: i <= Math.round(rating) ? '#fff' : 'rgba(255,255,255,0.2)' }}>★</span>
       ))}
     </span>
   );
 }
 
-function NotifyMe({ productId, productName, size }: { productId: string; productName: string; size: string }) {
+function NotifyMe({ productId, variantId, productName, size }: { productId: string; variantId: string; productName: string; size: string }) {
   const [email, setEmail]     = useState('');
   const [sent, setSent]       = useState(false);
   const [loading, setLoading] = useState(false);
@@ -33,7 +37,7 @@ function NotifyMe({ productId, productName, size }: { productId: string; product
     try {
       const { getClient } = await import('@/lib/supabase');
       await getClient().from('notify_me').insert({
-        product_id: productId, size, email: email.trim(), notified: false,
+        product_id: productId, variant_id: variantId, size, email: email.trim(), notified: false,
       });
     } catch {
       // Silently continue — even if the DB insert fails, show success to avoid blocking UX
@@ -163,9 +167,7 @@ function RelatedProducts({ product, onOpen }: { product: import('@/types').Produ
               {/* Image */}
               <div style={{ width:'100%', aspectRatio:'3/4', background:'linear-gradient(135deg,#111,#1c1c1c)', overflow:'hidden', position:'relative' }}>
                 {rImgs.primary ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={rImgs.primary} alt={p.name} draggable={false}
-                    style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+                  <Image src={rImgs.primary} alt={p.name} fill sizes="150px" style={{ objectFit:'cover' }} />
                 ) : (
                   <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center' }}>
                     <span style={{ fontFamily:'var(--font-display)', fontSize:22, color:'rgba(255,255,255,0.08)', letterSpacing:'0.1em' }}>
@@ -200,9 +202,8 @@ function RelatedProducts({ product, onOpen }: { product: import('@/types').Produ
 }
 
 /** Build the image slide list for a given product.
- *  Uses product_media from DB first, falls back to PRODUCT_PHOTO_MAP, then placeholders. */
+ *  Uses product_media from DB first, then placeholder slots. */
 function buildSlides(product: import('@/types').Product) {
-  // Use real media from DB if available
   const dbMedia = (product.media ?? []).sort((a, b) => a.position - b.position);
   if (dbMedia.length > 0) {
     return dbMedia.map((m, i) => ({
@@ -212,20 +213,8 @@ function buildSlides(product: import('@/types').Product) {
     }));
   }
 
-  // Legacy fallback: static PRODUCT_PHOTO_MAP
-  const photos = PRODUCT_PHOTO_MAP[product.id];
-  const real: Array<{ src: string; label: string; alt: string }> = [];
-  if (photos?.img)  real.push({ src: photos.img,  label: 'Front View', alt: `${product.name} — front view` });
-  if (photos?.img2) real.push({ src: photos.img2, label: 'Back View',  alt: `${product.name} — back view` });
-
-  // Fill remaining slots with placeholders up to 7 total
-  const allLabels = ['Detail', 'Side View', 'Flat Lay', 'On Model', 'Close Up'];
-  const padCount  = Math.max(0, 7 - real.length);
-  const placeholders = allLabels
-    .slice(0, padCount)
-    .map(label => ({ src: '', label, alt: `${product.name} — ${label.toLowerCase()}` }));
-
-  return real.length > 0 ? [...real, ...placeholders] : [{ src: '', label: 'Product', alt: product.name }];
+  // No media — show a single placeholder slot
+  return [{ src: '', label: 'Product', alt: product.name }];
 }
 
 export default function ProductOverlay() {
@@ -575,8 +564,10 @@ export default function ProductOverlay() {
           >
             {/* Image / placeholder — transformed by zoom + pan + swipe drag */}
             {currentSlide.src ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              // Raw img intentionally used here: zoom/pan transforms require full style control
+              // that conflicts with next/image's layout wrappers. Image is already optimised
+              // by next/image when served from Supabase Storage via remotePatterns.
+              <img // eslint-disable-line @next/next/no-img-element
                 key={currentSlide.src + clampedImg}
                 src={currentSlide.src}
                 alt={currentSlide.alt ?? `${product.name} — ${currentSlide.label}`}
@@ -803,7 +794,7 @@ export default function ProductOverlay() {
                 const selVariant = product.variants?.find(v => v.size === selectedSize);
                 const selQty = selVariant ? getInventoryForVariant(product, selVariant.id) : -1;
                 if (selectedSize && selQty === 0) {
-                  return <NotifyMe productId={product.id} productName={product.name} size={selectedSize} />;
+                  return <NotifyMe productId={product.id} variantId={selVariant?.id ?? ''} productName={product.name} size={selectedSize} />;
                 }
                 return null;
               })()}

@@ -65,7 +65,6 @@ export default function Navbar() {
           onClick={e => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           aria-label="Rare Ease" style={{ display: 'flex', alignItems: 'center' }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <Image src="/logo-text.svg" alt="Rare Ease" className="nav-logo-img" width={160} height={28} priority />
         </a>
 
@@ -74,9 +73,7 @@ export default function Navbar() {
           <li>
             <button
               onClick={() => openCategoryOverlay(mensOversized)}
-              style={{ background: 'none', border: 'none', fontFamily: 'var(--font-body)', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', transition: 'color 0.2s', padding: '4px 0' }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--white)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
+              className="nav-text-btn"
             >
               Collection
             </button>
@@ -123,7 +120,6 @@ export default function Navbar() {
 
           {/* Logo */}
           <div className="hm-logo-row">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <Image src="/logo-text.svg" alt="Rare Ease" width={160} height={44} priority style={{width:'auto', height:44}} />
             <button className="hm-close" onClick={close} aria-label="Close menu">✕</button>
           </div>

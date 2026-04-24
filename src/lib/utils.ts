@@ -6,6 +6,15 @@
 
 import type { Product } from '@/types';
 
+// ── Shipping constants ─────────────────────────────────────────────────────────
+
+export const SHIPPING_FREE_THRESHOLD = 1499;
+export const SHIPPING_COST           = 99;
+
+export function calcShipping(subtotal: number): number {
+  return subtotal >= SHIPPING_FREE_THRESHOLD ? 0 : SHIPPING_COST;
+}
+
 // ── Price formatter ────────────────────────────────────────────────────────────
 
 export function formatPrice(price: number): string {

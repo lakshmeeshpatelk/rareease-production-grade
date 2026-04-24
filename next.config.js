@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['razorpay'],
-
   // ── App Router body size limit (for product image uploads)
   experimental: {
     serverActions: {

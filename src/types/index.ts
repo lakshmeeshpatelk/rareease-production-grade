@@ -85,9 +85,6 @@ export interface Order {
   shiprocket_order_id?:    number;
   shiprocket_shipment_id?: number;
   awb_code?: string;
-  // Legacy Razorpay (kept for historical paid orders — null on all new orders)
-  razorpay_order_id?:   string;
-  razorpay_payment_id?: string;
   coupon_code?: string;
   discount_amount: number;
   subtotal: number;
@@ -127,22 +124,7 @@ export interface Review {
   is_approved: boolean;
   created_at: string;
   // joined
-  images?: ReviewImage[];
   user?: { full_name: string; avatar_url?: string };
-}
-
-export interface ReviewImage {
-  id: string;
-  review_id: string;
-  url: string;
-}
-
-export interface WishlistItem {
-  id: string;
-  user_id: string;
-  product_id: string;
-  created_at: string;
-  product?: Product;
 }
 
 export interface Address {

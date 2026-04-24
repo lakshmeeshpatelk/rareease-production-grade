@@ -1,13 +1,8 @@
 /**
  * productImage.ts — Single source of truth for product image resolution.
- *
- * Priority:
- *   1. product.media from Supabase (uploaded via admin panel)
- *   2. PRODUCT_PHOTO_MAP fallback (legacy hardcoded images)
- *   3. null (show placeholder)
+ * Uses product.media from Supabase (uploaded via admin panel).
  */
 
-import { PRODUCT_PHOTO_MAP } from '@/lib/productPhotos';
 import type { Product, ProductMedia } from '@/types';
 
 export interface ProductImageSlide {
@@ -23,9 +18,8 @@ export interface ProductImages {
   slides:     ProductImageSlide[];    // enriched slides with alt text
 }
 
-/** Resolve images for a product — DB media first, legacy fallback second */
+/** Resolve images for a product — DB media only */
 export function getProductImages(product: Product): ProductImages {
-  // 1. Use product_media from DB if available
   const media = (product.media ?? []).sort(
     (a: ProductMedia, b: ProductMedia) => a.position - b.position,
   );
@@ -45,24 +39,6 @@ export function getProductImages(product: Product): ProductImages {
     };
   }
 
-  // 2. Fallback to static PRODUCT_PHOTO_MAP
-  const photos = PRODUCT_PHOTO_MAP[product.id];
-  if (photos) {
-    const all = [photos.img, photos.img2].filter(Boolean) as string[];
-    const slides: ProductImageSlide[] = all.map((src, i) => ({
-      src,
-      alt:   `${product.name} — ${i === 0 ? 'front' : 'back'} view`,
-      label: `Image ${i + 1} of ${all.length}`,
-    }));
-    return {
-      primary:   photos.img ?? null,
-      secondary: photos.img2 ?? null,
-      all,
-      slides,
-    };
-  }
-
-  // 3. No images
   return { primary: null, secondary: null, all: [], slides: [] };
 }
 

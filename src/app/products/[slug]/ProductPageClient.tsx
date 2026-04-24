@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useCartStore } from '@/store/cartStore';
 import { useUIStore } from '@/store/uiStore';
@@ -50,7 +51,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
   // JSON-LD structured data
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ?? 'https://rareease.com';
   const productUrl = `${appUrl}/products/${product.slug}`;
-  const inStock = product.inventory?.some((i: any) => i.quantity > 0);
+  const inStock = product.inventory?.some((i: { quantity: number }) => i.quantity > 0);
   const productImages = imgs.all.length > 0 ? imgs.all : undefined;
 
   const jsonLd = {
@@ -127,8 +128,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
           <div className="pp-images">
             <div className="pp-main-img">
               {images.length > 0 ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={images[imgIdx]} alt={product.name} />
+                <Image src={images[imgIdx]} alt={product.name} fill sizes="(max-width:768px) 100vw, 50vw" style={{ objectFit: 'cover' }} priority />
               ) : (
                 <div className="pp-img-placeholder">
                   <span>{getProductInitials(product)}</span>
@@ -139,10 +139,9 @@ export default function ProductPageClient({ product }: { product: Product }) {
             {images.length > 1 && (
               <div className="pp-thumbs">
                 {images.map((src, i) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={i} src={src} alt={`${product.name} ${i + 1}`}
-                    className={`pp-thumb${imgIdx === i ? ' active' : ''}`}
-                    onClick={() => setImgIdx(i)} />
+                  <div key={i} className={`pp-thumb${imgIdx === i ? ' active' : ''}`} onClick={() => setImgIdx(i)} style={{ position: 'relative' }}>
+                    <Image src={src} alt={`${product.name} ${i + 1}`} fill sizes="80px" style={{ objectFit: 'cover' }} />
+                  </div>
                 ))}
               </div>
             )}
@@ -241,10 +240,9 @@ export default function ProductPageClient({ product }: { product: Product }) {
                 const rImgs = getProductImages(p);
                 return (
                   <Link key={p.id} href={`/products/${p.slug}`} className="pp-related-card">
-                    <div className="pp-related-img">
+                    <div className="pp-related-img" style={{ position: 'relative' }}>
                       {rImgs.primary ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={rImgs.primary} alt={p.name} />
+                        <Image src={rImgs.primary} alt={p.name} fill sizes="(max-width:768px) 50vw, 200px" style={{ objectFit: 'cover' }} />
                       ) : (
                         <div className="pp-related-placeholder">
                           {getProductInitials(p)}
