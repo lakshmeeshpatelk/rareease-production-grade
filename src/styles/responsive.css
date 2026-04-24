@@ -42,7 +42,7 @@ html, body { overscroll-behavior-x: none; }
   .trend-card-new { width: 160px; }
 
   /* ShopGrid */
-  .sg-section  { padding: 20px 14px 0; }
+  .sg-section  { padding: 20px 10px 0; }
   .sg-grid-2col { gap: 6px; }
 
   /* Cart drawer full-width */
