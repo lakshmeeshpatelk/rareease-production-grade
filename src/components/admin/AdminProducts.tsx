@@ -4,7 +4,6 @@ import { useAdminStore } from '@/store/adminStore';
 import { CATEGORIES as STATIC_CATEGORIES } from '@/lib/categories';
 import { formatPrice } from '@/lib/utils';
 import type { Product, Variant } from '@/types';
-import { createBrowserClient } from '@supabase/ssr';
 
 const BADGES   = ['', 'Bestseller', 'New', 'Limited'] as const;
 const SIZES    = ['S', 'M', 'L', 'XL', 'XXL'] as const;
@@ -47,26 +46,22 @@ function Err({ msg }: { msg: string }) {
   return <div style={{fontSize:11,color:'var(--adm-red)',marginTop:5}}>{msg}</div>;
 }
 
-/* ── Multi-image upload — memo'd so parent keystrokes don't re-render the grid ── */
-const supabaseBrowser = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
-
-const MultiImageUpload = memo(function MultiImageUpload({ previews, onChange }: { previews:string[]; onChange:(u:string[])=>void }) {
+const MultiImageUpload = memo(function MultiImageUpload({ previews, onChange, productId }: { previews:string[]; onChange:(u:string[])=>void; productId?:string }) {
   const ref = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
   const uploadFile = async (f: File): Promise<string> => {
     if (!f.type.startsWith('image/')) throw new Error('Not an image');
-    const ext = f.name.split('.').pop() ?? 'jpg';
-    const path = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error } = await supabaseBrowser.storage
-      .from('product-images')
-      .upload(path, f, { contentType: f.type, upsert: false });
-    if (error) throw new Error(error.message);
-    const { data } = supabaseBrowser.storage.from('product-images').getPublicUrl(path);
-    return data.publicUrl;
+    const formData = new FormData();
+    formData.append('file', f);
+    if (productId) formData.append('productId', productId);
+    const res = await fetch('/api/admin/product-image', { method: 'POST', body: formData });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+      throw new Error(err.error ?? 'Upload failed');
+    }
+    const { url } = await res.json();
+    return url;
   };
 
   const addFiles = async (files: FileList | File[]) => {
@@ -136,7 +131,6 @@ const MultiImageUpload = memo(function MultiImageUpload({ previews, onChange }: 
   );
 });
 
-/* ── Styled select — forces dark bg on native dropdown ─────────── */
 const SEL: React.CSSProperties = {
   width:'100%', background:'#1a1a1a', border:'1px solid rgba(255,255,255,0.12)',
   color:'#e8e6e0', fontFamily:'inherit', fontSize:13.5, padding:'11px 15px',
@@ -196,7 +190,6 @@ export default function AdminProducts() {
       return;
     }
     try {
-      // Single PATCH call with all updated fields + media
       const res = await fetch('/api/admin/products', {
         method: 'PATCH',
         credentials: 'same-origin',
@@ -210,13 +203,12 @@ export default function AdminProducts() {
           price: Number(editForm.price),
           original_price: editForm.original_price ? Number(editForm.original_price) : null,
           badge: editForm.badge || null,
-         is_active: editForm.is_active,
+          is_active: editForm.is_active,
           is_featured: editForm.is_featured,
           media: editForm.imagePreviews,
         }),
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error ?? 'Save failed'); }
-      // Update local store state
       useAdminStore.setState(s => ({
         products: s.products.map(p => p.id !== editing.id ? p : {
           ...p,
@@ -229,7 +221,7 @@ export default function AdminProducts() {
           badge: editForm.badge || undefined,
           is_active: editForm.is_active,
           is_featured: editForm.is_featured,
-           media: editForm.imagePreviews.map((url, i) => ({ id: '', product_id: editing.id, url, type: 'image' as const, position: i })),
+          media: editForm.imagePreviews.map((url, i) => ({ id: '', product_id: editing.id, url, type: 'image' as const, position: i })),
         }),
       }));
     } catch (e) {
@@ -255,7 +247,7 @@ export default function AdminProducts() {
     setErrors(e);return Object.keys(e).length===0;
   };
 
-    const saveNew = async () => {
+  const saveNew = async () => {
     if(!validateNew()) return;
     const product = buildProduct(newForm, products.filter(p=>p.category_id===newForm.category_id).length);
     product.media = newForm.imagePreviews.map((url, i) => ({
@@ -266,7 +258,6 @@ export default function AdminProducts() {
     setAdding(false);setNewForm(emptyForm());setErrors({});flashSaved();
   };
 
-  // Stable edit-form handler
   const ef = useCallback(
     (k: keyof EditForm) =>
       (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -279,11 +270,10 @@ export default function AdminProducts() {
     clearTimeout(flashTimer.current);
     flashTimer.current = setTimeout(() => setSaved(false), 2000);
   }, []);
+
   const confirmDel = async () => { if(deleting){await deleteProduct(deleting.id);setDeleting(null);} };
   const catLabel   = (id:string) => CATEGORIES.find(c=>c.id===id)?.label??id;
 
-  // Stable form field handler — useCallback prevents new fn ref on every keystroke
-  // which would cause MultiImageUpload and other children to re-render on iOS
   const nf = useCallback(
     (k: keyof NewProductForm) =>
       (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -293,14 +283,12 @@ export default function AdminProducts() {
 
   return (
     <div>
-      {/* ── Saved flash ── */}
       {saved && (
         <div style={{position:'fixed',top:20,right:20,zIndex:9999,background:'rgba(195,206,148,0.15)',border:'1px solid rgba(195,206,148,0.4)',color:'var(--adm-sage)',fontSize:12,fontWeight:700,letterSpacing:'0.15em',padding:'10px 18px'}}>
           ✓ SAVED
         </div>
       )}
 
-      {/* ── Toolbar ── */}
       <div className="adm-toolbar">
         <div className="adm-search-wrap">
           <span className="adm-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
@@ -315,7 +303,6 @@ export default function AdminProducts() {
         </button>
       </div>
 
-      {/* ── Bulk actions bar ── */}
       {selected.size>0 && (
         <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 16px',background:'rgba(195,206,148,0.07)',border:'1px solid rgba(195,206,148,0.2)',marginBottom:12}}>
           <span style={{fontSize:11,fontWeight:700,color:'var(--adm-sage)',letterSpacing:'0.1em'}}>{selected.size} selected</span>
@@ -323,7 +310,7 @@ export default function AdminProducts() {
           <button className="adm-act-btn adm-act-btn--sage" onClick={()=>bulkActive(true)}>Show All</button>
           <button className="adm-act-btn" onClick={()=>bulkActive(false)}>Hide All</button>
           <select style={{...SEL,width:'auto',padding:'5px 32px 5px 10px',fontSize:11}} defaultValue=""
-            onChange={e=>{if(e.target.value!==''){bulkBadge(e.target.value);(e.target as HTMLSelectElement).value='';}}}>
+            onChange={e=>{if(e.target.value!==''){bulkBadge(e.target.value);(e.target as HTMLSelectElement).value='';}}}> 
             <option value="">Set Badge…</option>
             <option value="">None</option>
             {['Bestseller','New','Limited'].map(b=><option key={b} value={b}>{b}</option>)}
@@ -333,7 +320,6 @@ export default function AdminProducts() {
         </div>
       )}
 
-      {/* ── Table ── */}
       <div className="adm-table-wrap">
         <table className="adm-table">
           <thead>
@@ -375,7 +361,6 @@ export default function AdminProducts() {
         </table>
       </div>
 
-      {/* ═══ ADD MODAL ═══ */}
       {adding && (
         <div className="adm-modal-backdrop" onClick={()=>setAdding(false)}>
           <div className="adm-modal" style={{maxWidth:660}} onClick={e=>e.stopPropagation()}>
@@ -386,14 +371,10 @@ export default function AdminProducts() {
               </button>
             </div>
             <div className="adm-modal-body">
-
-              {/* Images */}
               <div className="adm-field">
                 <label className="adm-field-label">Product Images <span style={{color:'rgba(255,255,255,0.3)',fontSize:10,fontWeight:400}}>up to {MAX_IMGS}</span></label>
                 <MultiImageUpload previews={newForm.imagePreviews} onChange={urls=>setNewForm(p=>({...p,imagePreviews:urls}))} />
               </div>
-
-              {/* Name + Category row */}
               <div className="adm-field-row" style={{marginTop:4}}>
                 <div className="adm-field">
                   <label className="adm-field-label">Category <span style={{color:'var(--adm-red)'}}>*</span></label>
@@ -408,34 +389,28 @@ export default function AdminProducts() {
                   {errors.name&&<Err msg={errors.name} />}
                 </div>
               </div>
-
               <div className="adm-field">
                 <label className="adm-field-label">Tagline</label>
                 <input className="adm-field-input" value={newForm.tagline} onChange={nf('tagline')} placeholder="Short one-liner"
                   autoComplete="off" autoCorrect="off" spellCheck={false} />
               </div>
-
               <div className="adm-field">
                 <label className="adm-field-label">Description</label>
                 <textarea className="adm-field-textarea" value={newForm.description} onChange={nf('description')} rows={3} placeholder="Product description…"
                   autoComplete="off" spellCheck={false} />
               </div>
-
               <div className="adm-field-row">
                 <div className="adm-field">
                   <label className="adm-field-label">Selling Price (₹) <span style={{color:'var(--adm-red)'}}>*</span></label>
-                  <input type="number" inputMode="decimal" className="adm-field-input" value={newForm.price} onChange={nf('price')} placeholder="2499"
-                    autoComplete="off" />
+                  <input type="number" inputMode="decimal" className="adm-field-input" value={newForm.price} onChange={nf('price')} placeholder="2499" autoComplete="off" />
                   {errors.price&&<Err msg={errors.price} />}
                 </div>
                 <div className="adm-field">
                   <label className="adm-field-label">Original Price (₹) <span style={{fontSize:9,color:'var(--adm-dim)'}}>if on sale</span></label>
-                  <input type="number" inputMode="decimal" className="adm-field-input" value={newForm.original_price} onChange={nf('original_price')} placeholder="2999"
-                    autoComplete="off" />
+                  <input type="number" inputMode="decimal" className="adm-field-input" value={newForm.original_price} onChange={nf('original_price')} placeholder="2999" autoComplete="off" />
                   {errors.original_price&&<Err msg={errors.original_price} />}
                 </div>
               </div>
-
               <div className="adm-field-row">
                 <div className="adm-field">
                   <label className="adm-field-label">Badge</label>
@@ -456,7 +431,7 @@ export default function AdminProducts() {
                 </div>
               </div>
             </div>
-             <div className="adm-modal-footer">
+            <div className="adm-modal-footer">
               <span style={{fontSize:11,color:'var(--adm-muted)'}}>Stock defaults to 0 — set quantities in Inventory after saving.</span>
               <button className="adm-header-btn" onClick={()=>setAdding(false)}>Cancel</button>
               <button className="adm-header-btn adm-header-btn--primary" onClick={saveNew}>Add Product →</button>
@@ -465,7 +440,6 @@ export default function AdminProducts() {
         </div>
       )}
 
-      {/* ═══ EDIT MODAL ═══ */}
       {editing && (
         <div className="adm-modal-backdrop" onClick={()=>setEditing(null)}>
           <div className="adm-modal" style={{maxWidth:620}} onClick={e=>e.stopPropagation()}>
@@ -479,52 +453,42 @@ export default function AdminProducts() {
               </button>
             </div>
             <div className="adm-modal-body">
-
-              {/* Images */}
               <div className="adm-field">
                 <label className="adm-field-label">Product Images <span style={{color:'rgba(255,255,255,0.3)',fontSize:10,fontWeight:400}}>up to {MAX_IMGS}</span></label>
-                <MultiImageUpload previews={editForm.imagePreviews} onChange={urls=>setEditForm(p=>({...p,imagePreviews:urls}))} />
+                <MultiImageUpload previews={editForm.imagePreviews} onChange={urls=>setEditForm(p=>({...p,imagePreviews:urls}))} productId={editing?.id} />
               </div>
-
               <div className="adm-field">
                 <label className="adm-field-label">Category</label>
                 <select style={SEL} value={editForm.category_id} onChange={ef('category_id')}>
                   {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-
               <div className="adm-field">
                 <label className="adm-field-label">Product Name</label>
                 <input className="adm-field-input" value={editForm.name} onChange={ef('name')}
                   autoComplete="off" autoCorrect="off" autoCapitalize="words" spellCheck={false} />
               </div>
-
               <div className="adm-field">
                 <label className="adm-field-label">Tagline</label>
                 <input className="adm-field-input" value={editForm.tagline} onChange={ef('tagline')}
                   autoComplete="off" autoCorrect="off" spellCheck={false} />
               </div>
-
               <div className="adm-field">
                 <label className="adm-field-label">Description</label>
                 <textarea className="adm-field-textarea" value={editForm.description} onChange={ef('description')} rows={3}
                   autoComplete="off" spellCheck={false} />
               </div>
-
               <div className="adm-field-row">
                 <div className="adm-field">
                   <label className="adm-field-label">Selling Price (₹)</label>
-                  <input type="number" inputMode="decimal" className="adm-field-input" value={editForm.price} onChange={ef('price')}
-                    autoComplete="off" />
+                  <input type="number" inputMode="decimal" className="adm-field-input" value={editForm.price} onChange={ef('price')} autoComplete="off" />
                 </div>
                 <div className="adm-field">
                   <label className="adm-field-label">Original Price (₹)</label>
-                  <input type="number" inputMode="decimal" className="adm-field-input" value={editForm.original_price} placeholder="Leave blank if not on sale" onChange={ef('original_price')}
-                    autoComplete="off" />
+                  <input type="number" inputMode="decimal" className="adm-field-input" value={editForm.original_price} placeholder="Leave blank if not on sale" onChange={ef('original_price')} autoComplete="off" />
                 </div>
               </div>
-
-                            <div className="adm-field-row">
+              <div className="adm-field-row">
                 <div className="adm-field">
                   <label className="adm-field-label">Badge</label>
                   <select style={SEL} value={editForm.badge} onChange={ef('badge')}>
@@ -557,7 +521,6 @@ export default function AdminProducts() {
         </div>
       )}
 
-      {/* ═══ DELETE CONFIRM ═══ */}
       {deleting && (
         <div className="adm-modal-backdrop" onClick={()=>setDeleting(null)}>
           <div className="adm-modal" style={{maxWidth:420}} onClick={e=>e.stopPropagation()}>
