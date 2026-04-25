@@ -24,6 +24,7 @@ import OrderTrackingOverlay from '@/components/OrderTrackingOverlay';
 import BrandIntro from '@/components/BrandIntro';
 import ShopGrid from '@/components/ShopGrid';
 import RecentlyViewed from '@/components/RecentlyViewed';
+import BrandVideoSection from '@/components/BrandVideoSection';  // ← NEW
 import { useUIStore } from '@/store/uiStore';
 import { useCartStore } from '@/store/cartStore';
 import AnnouncementBar from '@/components/AnnouncementBar';
@@ -66,9 +67,6 @@ export default function HomeClient() {
   }, [mounted]);
 
   // Centralised body-scroll lock
-  // IMPORTANT: iOS Safari ignores `overflow: hidden` on <body>.
-  // The only reliable iOS fix is position:fixed + top:-scrollY.
-  // We save the scroll position, lock, then restore on unlock.
   useEffect(() => {
     const anyOpen =
       !!activeCategoryOverlay || !!activeProductOverlay ||
@@ -125,6 +123,12 @@ export default function HomeClient() {
         <Hero />
         <MarqueeStrip />
         <ShopGrid />
+
+        {/* ── Brand Promo Video (above Trending) ── */}
+        <BrandVideoSection />
+
+        {/* ── Trending Now ── */}
+        <ToastContainer />
       </main>
 
       <BrandIntro />
@@ -154,7 +158,6 @@ export default function HomeClient() {
       {/* ── Mobile bottom nav ── */}
       <MobileNav />
 
-      <ToastContainer />
       <ScrollToTop />
     </>
   );

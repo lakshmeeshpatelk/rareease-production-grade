@@ -12,6 +12,13 @@ export default function AdminContent() {
   const heroFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const [heroUploading, setHeroUploading] = useState<Record<number, boolean>>({});
 
+  // ── Brand Video state ────────────────────────────────────────────
+  const [brandVideoUrl,      setBrandVideoUrl]      = useState<string | null>(null);
+  const [brandVideoLoading,  setBrandVideoLoading]  = useState(false);
+  const [brandVideoDeleting, setBrandVideoDeleting] = useState(false);
+  const [brandVideoSaved,    setBrandVideoSaved]    = useState(false);
+  const brandVideoRef = useRef<HTMLInputElement | null>(null);
+
   const handleHeroUpload = async (slideId: number, file: File) => {
     setHeroUploading(p => ({ ...p, [slideId]: true }));
     try {
@@ -29,7 +36,60 @@ export default function AdminContent() {
     }
   };
 
-  useEffect(() => { loadContent(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // ── Brand Video handlers ─────────────────────────────────────────
+  const loadBrandVideo = async () => {
+    try {
+      const res = await fetch('/api/admin/brand-video');
+      if (res.ok) {
+        const { url } = await res.json();
+        setBrandVideoUrl(url ?? null);
+      }
+    } catch {}
+  };
+
+  const handleBrandVideoUpload = async (file: File) => {
+    if (!file.type.startsWith('video/')) {
+      alert('Please select a video file (MP4, MOV, WebM).');
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      alert('Video must be under 50 MB.');
+      return;
+    }
+    setBrandVideoLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/admin/brand-video', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Upload failed');
+      const { url } = await res.json();
+      setBrandVideoUrl(url);
+      setBrandVideoSaved(true);
+      setTimeout(() => setBrandVideoSaved(false), 2500);
+    } catch (err) {
+      alert(`Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setBrandVideoLoading(false);
+    }
+  };
+
+  const handleBrandVideoDelete = async () => {
+    if (!confirm('Remove the brand promo video from the homepage?')) return;
+    setBrandVideoDeleting(true);
+    try {
+      await fetch('/api/admin/brand-video', { method: 'DELETE' });
+      setBrandVideoUrl(null);
+    } catch (err) {
+      alert(`Delete failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setBrandVideoDeleting(false);
+    }
+  };
+
+  useEffect(() => {
+    loadContent();
+    loadBrandVideo();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync local state when store loads from Supabase
   useEffect(() => {
@@ -72,6 +132,96 @@ export default function AdminContent() {
         <button className="adm-header-btn adm-header-btn--primary" onClick={saveAll} disabled={loading.content}>
           {loading.content ? 'Saving…' : saved ? '✓ Saved' : 'Save All Changes'}
         </button>
+      </div>
+
+      {/* ── Brand Promo Video ────────────────────────────────────────── */}
+      <div className="adm-content-section" style={{ marginBottom: 28 }}>
+        <div className="adm-content-section-title">Brand Promo Video</div>
+        <div style={{ fontSize:11, color:'rgba(255,255,255,0.25)', marginBottom:16, letterSpacing:'0.05em', lineHeight:1.7 }}>
+          Upload a short brand film (≤ 15 seconds, ≤ 50 MB — MP4 recommended).
+          It appears as a full-width section above &quot;Trending Now&quot; on the homepage.
+          If no video is uploaded, the section is hidden automatically.
+        </div>
+
+        {/* Preview */}
+        {brandVideoUrl ? (
+          <div style={{ marginBottom: 16, position: 'relative', background: '#111', border: '1px solid rgba(195,206,148,0.15)', overflow: 'hidden', aspectRatio: '16/9', maxWidth: 480 }}>
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+            <video
+              src={brandVideoUrl}
+              muted
+              autoPlay
+              loop
+              playsInline
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+            {/* Live badge */}
+            <div style={{ position:'absolute', top:8, left:10, display:'flex', alignItems:'center', gap:5 }}>
+              <span style={{ width:6, height:6, borderRadius:'50%', background:'#c3ce94', display:'inline-block', animation:'bvs-pulse 1.4s ease infinite' }} />
+              <span style={{ fontSize:9, letterSpacing:'0.15em', color:'rgba(195,206,148,0.8)', fontFamily:'Bebas Neue,sans-serif' }}>LIVE ON HOMEPAGE</span>
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            width: '100%', maxWidth: 480, aspectRatio: '16/9',
+            background: 'rgba(255,255,255,0.025)',
+            border: '1.5px dashed rgba(195,206,148,0.2)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: 8, marginBottom: 16,
+          }}>
+            <span style={{ fontSize: 32, opacity: 0.2 }}>▶</span>
+            <span style={{ fontSize: 10, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>No video uploaded</span>
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {/* Hidden file input */}
+          <input
+            type="file"
+            accept="video/*"
+            style={{ display: 'none' }}
+            ref={el => { brandVideoRef.current = el; }}
+            onChange={e => {
+              const file = e.target.files?.[0];
+              if (file) handleBrandVideoUpload(file);
+              e.target.value = '';
+            }}
+          />
+          <button
+            onClick={() => brandVideoRef.current?.click()}
+            disabled={brandVideoLoading}
+            style={{
+              background: 'rgba(195,206,148,0.08)',
+              border: '1px solid rgba(195,206,148,0.3)',
+              color: brandVideoLoading ? 'rgba(255,255,255,0.3)' : 'rgba(195,206,148,0.8)',
+              cursor: brandVideoLoading ? 'not-allowed' : 'pointer',
+              padding: '7px 16px', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase',
+            }}
+          >
+            {brandVideoLoading ? '⏳ Uploading…' : brandVideoSaved ? '✓ Uploaded!' : brandVideoUrl ? '🎬 Replace Video' : '🎬 Upload Video'}
+          </button>
+
+          {brandVideoUrl && (
+            <button
+              onClick={handleBrandVideoDelete}
+              disabled={brandVideoDeleting}
+              style={{
+                background: 'rgba(255,107,107,0.07)',
+                border: '1px solid rgba(255,107,107,0.2)',
+                color: 'rgba(255,107,107,0.6)',
+                cursor: brandVideoDeleting ? 'not-allowed' : 'pointer',
+                padding: '7px 16px', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase',
+              }}
+            >
+              {brandVideoDeleting ? 'Removing…' : '× Remove Video'}
+            </button>
+          )}
+        </div>
+
+        <style>{`
+          @keyframes bvs-pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        `}</style>
       </div>
 
       {/* ── Hero Slides ─────────────────────────────────────────────── */}
@@ -174,7 +324,7 @@ export default function AdminContent() {
 
       {/* ── Site Info / Social ───────────────────────────────────────── */}
       <div className="adm-content-section">
-        <div className="adm-content-section-title">Contact & Social Links</div>
+        <div className="adm-content-section-title">Contact &amp; Social Links</div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
           {[
             { label:'Email', placeholder:'rareeaseofficial@gmail.com', defaultValue:'rareeaseofficial@gmail.com' },
