@@ -520,7 +520,7 @@ export default function ProductOverlay() {
     if (!selectedSize) { addToast('⚠', 'Please select a size'); return; }
     const variant = product.variants?.find(v => v.size === selectedSize);
     if (!variant) return;
-    addItem({ productId: product.id, variantId: variant.id, name: product.name, price: product.price, size: selectedSize, quantity: 1, slug: product.slug });
+    addItem({ productId: product.id, variantId: variant.id, name: product.name, price: product.price, size: selectedSize, quantity: 1, slug: product.slug, image: slides[0]?.src ?? undefined });
     addToast('✓', `${product.name} added to cart`);
     openCart();
     closeProductOverlay();

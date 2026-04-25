@@ -32,7 +32,8 @@ function ProductCard({ product, priority = false }: { product: Product; priority
     // Check inventory before adding
     const available = getInventoryForVariant(product, variant.id);
     if (available <= 0) { addToast('✕', `${size} is out of stock`); return; }
-    addItem({ productId: product.id, variantId: variant.id, name: product.name, price: product.price, size, quantity: 1, slug: product.slug });
+    const imgs = getProductImages(product);
+    addItem({ productId: product.id, variantId: variant.id, name: product.name, price: product.price, size, quantity: 1, slug: product.slug, image: imgs.primary ?? undefined });
     addToast('✓', `${product.name} (${size}) added to cart`);
     openCart();
   };

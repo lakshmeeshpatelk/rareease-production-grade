@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
     let userId: string | null = null;
     try {
-      const serverClient = createServerClient();
+      const serverClient = await createServerClient();
       const { data: { user: authedUser } } = await serverClient.auth.getUser();
       userId = authedUser?.id ?? null;
     } catch { /* guest checkout */ }

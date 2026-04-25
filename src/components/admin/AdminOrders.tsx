@@ -4,7 +4,7 @@ import { AdminOrder } from '@/lib/adminData';
 import { formatPrice } from '@/lib/utils';
 import { useAdminStore } from '@/store/adminStore';
 
-const STATUSES = ['all','pending','processing','shipped','delivered','cancelled'] as const;
+const STATUSES = ['all','pending','processing','shipped','delivered','cancelled','refunded'] as const;
 const COURIERS = ['Shiprocket','DTDC','Delhivery','BlueDart','Ecom Express','India Post','Other'];
 const DATE_RANGES = ['all','today','7d','30d','custom'] as const;
 
@@ -186,7 +186,7 @@ export default function AdminOrders() {
         <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'rgba(195,206,148,0.07)', border:'1px solid rgba(195,206,148,0.2)', marginBottom:12 }}>
           <span style={{ fontSize:11, fontWeight:700, color:'var(--adm-sage)', letterSpacing:'0.1em' }}>{bulkSel.size} selected</span>
           <div style={{ width:1, height:16, background:'rgba(255,255,255,0.1)' }} />
-          {(['processing','shipped','delivered','cancelled'] as AdminOrder['status'][]).map(s => (
+          {(['processing','shipped','delivered','cancelled','refunded'] as AdminOrder['status'][]).map(s => (
             <button key={s} className="adm-act-btn" onClick={() => bulkUpdateStatus(s)}>
               → {s.charAt(0).toUpperCase()+s.slice(1)}
             </button>
@@ -233,7 +233,7 @@ export default function AdminOrders() {
                     <button className="adm-act-btn adm-act-btn--sage" onClick={() => openDetail(o)}>View</button>
                     <select className="adm-filter-select" style={{ padding:'4px 8px', fontSize:10 }} value={o.status}
                       onChange={e => updateStatus(o.id, e.target.value as AdminOrder['status'])}>
-                      {['pending','processing','shipped','delivered','cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
+                      {['pending','processing','shipped','delivered','cancelled','refunded'].map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
                 </td>
@@ -354,7 +354,7 @@ export default function AdminOrders() {
             <div className="adm-modal-footer">
               <select className="adm-filter-select" value={selected.status}
                 onChange={e => updateStatus(selected.id, e.target.value as AdminOrder['status'])}>
-                {['pending','processing','shipped','delivered','cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
+                {['pending','processing','shipped','delivered','cancelled','refunded'].map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <button className="adm-header-btn adm-header-btn--primary" onClick={() => setSelected(null)}>Done</button>
             </div>

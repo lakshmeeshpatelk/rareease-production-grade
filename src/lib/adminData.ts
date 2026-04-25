@@ -4,7 +4,7 @@ export interface AdminOrder {
   id: string; customer: string; email: string; phone: string; city: string;
   items: { name: string; size: string; qty: number; price: number }[];
   subtotal: number; total: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
   payment: 'paid' | 'pending' | 'failed' | 'refunded';
   paymentMethod: 'COD' | 'Online';
   createdAt: string; address: string;

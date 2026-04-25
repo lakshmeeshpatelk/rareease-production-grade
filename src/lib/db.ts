@@ -410,8 +410,7 @@ export async function adminFetchAllOrders(): Promise<AdminOrder[]> {
       })),
       subtotal: o.subtotal as number,
       total: o.total as number,
-      status: o.status as AdminOrder['status'],
-      payment: o.payment_status as AdminOrder['payment'],
+      status: o.status as AdminOrder['status'],      payment: o.payment_status as AdminOrder['payment'],
       paymentMethod: (o.payment_method as string) === 'cod' ? 'COD' : 'Online',
       createdAt: o.created_at as string,
       trackingNumber: o.tracking_number as string | undefined,
@@ -579,28 +578,31 @@ export async function adminFetchAllExchanges(): Promise<AdminExchange[]> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from('exchange_requests')
-    .select('*')
+    .select('*, orders(shipping_address)')
     .order('requested_at', { ascending: false });
   if (error) { console.error('adminFetchAllExchanges', error); return []; }
-  return (data ?? []).map((r) => ({
-    id: r.id as string,
-    orderId: r.order_id as string,
-    customer: (r.items as { name?: string }[])?.[0]?.name ?? '—',
-    email: '—',
-    phone: '—',
-    type: r.type as 'exchange' | 'cancellation',
-    reason: r.reason as AdminExchange['reason'],
-    reasonLabel: r.reason_label as string,
-    items: (r.items as AdminExchange['items']) ?? [],
-    wantSize: r.want_size as string | undefined,
-    status: r.status as AdminExchange['status'],
-    deliveredAt: r.delivered_at as string | undefined,
-    requestedAt: r.requested_at as string,
-    withinWindow: r.within_window as boolean,
-    shippingBy: r.shipping_by as 'rareease' | 'customer',
-    adminNote: r.admin_note as string | undefined,
-    proofNote: r.proof_note as string | undefined,
-  }));
+  return (data ?? []).map((r) => {
+    const addr = (r.orders as { shipping_address?: Record<string, string> } | null)?.shipping_address ?? {};
+    return {
+      id: r.id as string,
+      orderId: r.order_id as string,
+      customer: addr.name ?? '—',
+      email: addr.email ?? '—',
+      phone: addr.phone ?? '—',
+      type: r.type as 'exchange' | 'cancellation',
+      reason: r.reason as AdminExchange['reason'],
+      reasonLabel: r.reason_label as string,
+      items: (r.items as AdminExchange['items']) ?? [],
+      wantSize: r.want_size as string | undefined,
+      status: r.status as AdminExchange['status'],
+      deliveredAt: r.delivered_at as string | undefined,
+      requestedAt: r.requested_at as string,
+      withinWindow: r.within_window as boolean,
+      shippingBy: r.shipping_by as 'rareease' | 'customer',
+      adminNote: r.admin_note as string | undefined,
+      proofNote: r.proof_note as string | undefined,
+    };
+  });
 }
 
 export async function adminUpdateExchangeStatus(

@@ -24,7 +24,8 @@ import OrderTrackingOverlay from '@/components/OrderTrackingOverlay';
 import BrandIntro from '@/components/BrandIntro';
 import ShopGrid from '@/components/ShopGrid';
 import RecentlyViewed from '@/components/RecentlyViewed';
-import BrandVideoSection from '@/components/BrandVideoSection';  // ← NEW
+import BrandVideoSection from '@/components/BrandVideoSection';
+import TrendingSection from '@/components/TrendingSection';
 import { useUIStore } from '@/store/uiStore';
 import { useCartStore } from '@/store/cartStore';
 import AnnouncementBar from '@/components/AnnouncementBar';
@@ -128,6 +129,8 @@ export default function HomeClient() {
         <BrandVideoSection />
 
         {/* ── Trending Now ── */}
+        <TrendingSection />
+
         <ToastContainer />
       </main>
 

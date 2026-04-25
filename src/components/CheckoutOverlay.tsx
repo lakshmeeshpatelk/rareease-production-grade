@@ -307,12 +307,16 @@ export default function CheckoutOverlay() {
             paymentMethod: 'cod',
           }),
         });
-        if (!codRes.ok) throw new Error('Failed to place COD order');
+        if (!codRes.ok) {
+          const errData = await codRes.json().catch(() => ({})) as { error?: string };
+          throw new Error(errData.error ?? 'Failed to place COD order');
+        }
         const { orderId } = await codRes.json();
         clearCart();
         setSuccessOrder({ id: orderId, method: 'cod' });
-      } catch {
-        addToast('✕', 'Could not place order. Please try again.');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Could not place order. Please try again.';
+        addToast('✕', msg);
       } finally {
         setIsProcessing(false);
       }
@@ -320,6 +324,9 @@ export default function CheckoutOverlay() {
     }
 
     // Online payment flow — Cashfree
+    // NOTE: We use a flag to prevent the outer finally from resetting isProcessing
+    // when the Cashfree modal opens successfully (callbacks handle it then).
+    let modalOpened = false;
     try {
       const orderRes = await fetch('/api/payments/create', {
         method: 'POST',
@@ -332,7 +339,10 @@ export default function CheckoutOverlay() {
           paymentMethod: 'online',
         }),
       });
-      if (!orderRes.ok) throw new Error('Failed to create order');
+      if (!orderRes.ok) {
+        const errData = await orderRes.json().catch(() => ({})) as { error?: string };
+        throw new Error(errData.error ?? 'Failed to create order');
+      }
       const { paymentSessionId, orderId } = await orderRes.json() as { paymentSessionId: string; orderId: string; total: number };
 
       if (!paymentSessionId) throw new Error('No payment session returned');
@@ -343,6 +353,8 @@ export default function CheckoutOverlay() {
       const cashfree = new window.Cashfree({
         mode: (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? 'sandbox') as 'sandbox' | 'production',
       });
+
+      modalOpened = true; // signal: callbacks will reset isProcessing
 
       // Cashfree drop-in checkout modal
       cashfree.checkout({
@@ -377,13 +389,15 @@ export default function CheckoutOverlay() {
         },
       });
 
-      // isProcessing is reset inside the callbacks above
+      // isProcessing is reset inside the callbacks above — don't reset here
       return;
     } catch (err) {
       console.error('[payment]', err);
-      addToast('✕', 'Something went wrong. Please try again.');
+      const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+      addToast('✕', msg);
     } finally {
-      setIsProcessing(false);
+      // Only reset here if the modal never opened — otherwise the callbacks handle it
+      if (!modalOpened) setIsProcessing(false);
     }
   };
 
@@ -692,7 +706,9 @@ export default function CheckoutOverlay() {
                     )}
                     <div className="checkout-order-total-row">
                       <span>Shipping</span>
-                      <span style={{ color: 'var(--sage)' }}>FREE</span>
+                      <span style={{ color: shipping === 0 ? 'var(--sage)' : 'var(--white)' }}>
+                        {shipping === 0 ? 'FREE' : formatPrice(shipping)}
+                      </span>
                     </div>
                     <div className="checkout-order-total-row">
                       <span>GST (included)</span>
@@ -727,14 +743,19 @@ export default function CheckoutOverlay() {
   );
 }
 
-// Load Cashfree JS SDK from CDN
+// Load Cashfree JS SDK from CDN — cached so concurrent calls don't double-insert the script tag
+let _cashfreeScriptPromise: Promise<void> | null = null;
 async function loadCashfreeScript(): Promise<void> {
-  if (typeof window.Cashfree !== 'undefined') return;
-  return new Promise((resolve, reject) => {
+  if (typeof window !== 'undefined' && typeof window.Cashfree !== 'undefined') return;
+  if (_cashfreeScriptPromise) return _cashfreeScriptPromise;
+  _cashfreeScriptPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[src="https://sdk.cashfree.com/js/v3/cashfree.js"]');
+    if (existing) { existing.addEventListener('load', () => resolve()); return; }
     const script = document.createElement('script');
     script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
+    script.onload  = () => resolve();
+    script.onerror = () => { _cashfreeScriptPromise = null; reject(new Error('Failed to load Cashfree SDK')); };
     document.head.appendChild(script);
   });
+  return _cashfreeScriptPromise;
 }

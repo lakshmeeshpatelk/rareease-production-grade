@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     // Who is calling?
     let callerId: string | null = null;
     try {
-      const serverClient = createServerClient();
+      const serverClient = await createServerClient();
       const { data: { user } } = await serverClient.auth.getUser();
       callerId = user?.id ?? null;
     } catch {

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useUIStore } from '@/store/uiStore';
@@ -121,21 +122,31 @@ export default function CartDrawer() {
                 <div className="cart-items-list">
                   {items.map((item) => (
                     <div key={`${item.productId}-${item.variantId}`} className="cart-item-v2">
-                      <div className="cart-item-img-v2">
-                        <div style={{
-                          width: '100%', height: '100%',
-                          background: 'linear-gradient(135deg, #131313, #1d1d1d)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                          <span style={{
-                            fontFamily: 'var(--font-display)',
-                            fontSize: 20,
-                            color: 'rgba(255,255,255,0.12)',
-                            letterSpacing: '0.04em',
+                      <div className="cart-item-img-v2" style={{ position: 'relative', overflow: 'hidden' }}>
+                        {item.image ? (
+                          <Image
+                            src={item.image}
+                            alt={item.name}
+                            fill
+                            sizes="72px"
+                            style={{ objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: '100%', height: '100%',
+                            background: 'linear-gradient(135deg, #131313, #1d1d1d)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
                           }}>
-                            {item.name.split(' ').map((w: string) => w[0]).join('').slice(0, 3)}
-                          </span>
-                        </div>
+                            <span style={{
+                              fontFamily: 'var(--font-display)',
+                              fontSize: 20,
+                              color: 'rgba(255,255,255,0.12)',
+                              letterSpacing: '0.04em',
+                            }}>
+                              {item.name.split(' ').map((w: string) => w[0]).join('').slice(0, 3)}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="cart-item-body-v2">
                         <div>
