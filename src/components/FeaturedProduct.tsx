@@ -1,38 +1,34 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useProductsStore } from '@/store/productsStore';
 import { formatPrice } from '@/lib/utils';
-
-const VIEWS = ['Front', 'Back', 'Detail', 'Side'];
-const GRADS = [
-  'linear-gradient(160deg,#1a1a1a,#0a0a0a)',
-  'linear-gradient(140deg,#111,#1c1c1c)',
-  'linear-gradient(120deg,#0d0d0d,#181818)',
-  'linear-gradient(150deg,#131313,#0a0a0a)',
-];
+import { getProductImages, getProductInitials } from '@/lib/productImage';
 
 export default function FeaturedProduct() {
-  const [size, setSize] = useState('');
-  const [view, setView] = useState(0);
-  const { addItem, openCart } = useCartStore();
+  const [size, setSize]   = useState('');
+  const [imgIdx, setImgIdx] = useState(0);
+  const { addItem, openCart }  = useCartStore();
   const { addToast, openProductOverlay } = useUIStore();
-  const { toggleWithSync, has } = useWishlistStore();
-  const { products } = useProductsStore();
+  const { toggleWithSync, has }           = useWishlistStore();
+  const { products }                       = useProductsStore();
 
-  // Use first featured product, or first active product as fallback
-  const product = products.find(p => p.is_featured && p.is_active) ?? products.find(p => p.is_active);
+  const product    = products.find(p => p.is_featured && p.is_active) ?? products.find(p => p.is_active);
   if (!product) return null;
+
   const isWishlisted = has(product.id);
+  const imgs         = getProductImages(product);
+  const activeImg    = imgs.slides[imgIdx];
 
   const addToCart = () => {
     if (!size) { addToast('⚠', 'Please select a size'); return; }
     const variant = product.variants?.find(v => v.size === size);
     if (!variant) return;
-    addItem({ productId: product.id, variantId: variant.id, name: product.name, price: product.price, size, quantity: 1, slug: product.slug });
+    addItem({ productId: product.id, variantId: variant.id, name: product.name, price: product.price, size, quantity: 1, slug: product.slug, image: imgs.primary ?? undefined });
     addToast('✓', `${product.name} (${size}) added`);
     openCart();
   };
@@ -44,49 +40,65 @@ export default function FeaturedProduct() {
         <div className="feat-tag">Featured</div>
       </div>
 
-      {/* Image — big, tap to open overlay */}
+      {/* Main image */}
       <div className="feat-img-wrap" onClick={() => openProductOverlay(product)}>
-        <div className="feat-img" style={{ background: GRADS[view] }}>
-          <span className="feat-img-initials">
-            {product.name.split(' ').map((w: string) => w[0]).join('')}
-          </span>
-        </div>
+        <div className="feat-img" style={{ position: 'relative', background: '#111', overflow: 'hidden' }}>
+          {activeImg ? (
+            <Image
+              src={activeImg.src}
+              alt={activeImg.alt}
+              fill
+              sizes="(max-width:768px) 100vw, 50vw"
+              style={{ objectFit: 'cover', objectPosition: 'top center' }}
+              priority
+            />
+          ) : (
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(160deg,#1a1a1a,#0a0a0a)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span style={{ fontSize: 72, fontWeight: 900, color: 'rgba(255,255,255,0.06)', fontFamily: 'var(--font-display)' }}>
+                {getProductInitials(product)}
+              </span>
+            </div>
+          )}
 
-        {/* Wish btn on image */}
-        <button
-          className={`feat-wish${isWishlisted ? ' active' : ''}`}
-          onClick={e => { e.stopPropagation(); toggleWithSync(product.id); addToast(isWishlisted ? '♡' : '♥', isWishlisted ? 'Removed' : 'Wishlisted'); }}
-          aria-label="Wishlist"
-        >
-          {isWishlisted ? '♥' : '♡'}
-        </button>
-
-        {/* Sale badge */}
-        {product.original_price && (
-          <div className="feat-sale-badge">
-            {Math.round((1 - product.price / product.original_price) * 100)}% OFF
-          </div>
-        )}
-
-        {/* View label */}
-        <div className="feat-view-label">{VIEWS[view]}</div>
-      </div>
-
-      {/* Thumb strip */}
-      <div className="feat-thumbs">
-        {GRADS.map((g, i) => (
           <button
-            key={i}
-            className={`feat-thumb${view === i ? ' active' : ''}`}
-            style={{ background: g }}
-            onClick={() => setView(i)}
+            className={`feat-wish${isWishlisted ? ' active' : ''}`}
+            onClick={e => { e.stopPropagation(); toggleWithSync(product.id); addToast(isWishlisted ? '♡' : '♥', isWishlisted ? 'Removed' : 'Wishlisted'); }}
+            aria-label="Wishlist"
           >
-            <span style={{ fontSize: 8, color: view === i ? 'var(--sage)' : 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}>
-              {String(i + 1).padStart(2, '0')}
-            </span>
+            {isWishlisted ? '♥' : '♡'}
           </button>
-        ))}
+
+          {product.original_price && (
+            <div className="feat-sale-badge">
+              {Math.round((1 - product.price / product.original_price) * 100)}% OFF
+            </div>
+          )}
+
+          {imgs.slides.length > 1 && (
+            <div className="feat-view-label">{imgIdx + 1} / {imgs.slides.length}</div>
+          )}
+        </div>
       </div>
+
+      {/* Thumbnail strip */}
+      {imgs.slides.length > 1 && (
+        <div className="feat-thumbs">
+          {imgs.slides.map((slide, i) => (
+            <button
+              key={i}
+              className={`feat-thumb${imgIdx === i ? ' active' : ''}`}
+              onClick={() => setImgIdx(i)}
+              style={{ position: 'relative', overflow: 'hidden', background: '#111' }}
+            >
+              <Image src={slide.src} alt={slide.alt} fill sizes="60px" style={{ objectFit: 'cover' }} />
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Info */}
       <div className="feat-info">
@@ -100,7 +112,6 @@ export default function FeaturedProduct() {
           )}
         </div>
 
-        {/* Size selector */}
         <div className="feat-sizes-label">Select Size</div>
         <div className="feat-sizes">
           {product.variants?.map(v => {
@@ -130,7 +141,6 @@ export default function FeaturedProduct() {
           })}
         </div>
 
-        {/* CTA */}
         <div className="feat-cta-row">
           <button className="feat-add-btn" onClick={addToCart}>Add to Cart</button>
           <button className="feat-view-btn" onClick={() => openProductOverlay(product)}>Full Details</button>

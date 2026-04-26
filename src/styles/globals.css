@@ -2416,6 +2416,7 @@ input, textarea { -webkit-appearance: none; border-radius: 0; }
 .rv-card-img {
   width: 100%;
   aspect-ratio: 3/4;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;

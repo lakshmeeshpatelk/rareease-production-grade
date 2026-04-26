@@ -1,19 +1,20 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useUIStore } from '@/store/uiStore';
 import { useProductsStore } from '@/store/productsStore';
-import { formatPrice, CAT_GRADIENTS } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
+import { getProductImages, getProductInitials } from '@/lib/productImage';
 import { Product } from '@/types';
 
 const STORAGE_KEY = 'rareease-recently-viewed';
-const MAX_ITEMS = 4;
+const MAX_ITEMS   = 4;
 
-// Exported so ProductOverlay can call it
 export function trackProductView(productId: string) {
   if (typeof window === 'undefined') return;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw     = localStorage.getItem(STORAGE_KEY);
     const ids: string[] = raw ? JSON.parse(raw) : [];
     const updated = [productId, ...ids.filter(id => id !== productId)].slice(0, MAX_ITEMS);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
@@ -22,7 +23,7 @@ export function trackProductView(productId: string) {
 
 export default function RecentlyViewed() {
   const { openProductOverlay } = useUIStore();
-  const { getByIds } = useProductsStore();
+  const { getByIds }           = useProductsStore();
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
@@ -31,8 +32,7 @@ export default function RecentlyViewed() {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return;
         const ids: string[] = JSON.parse(raw);
-        const found = getByIds(ids);
-        setProducts(found);
+        setProducts(getByIds(ids));
       } catch {}
     };
     load();
@@ -51,9 +51,9 @@ export default function RecentlyViewed() {
       </div>
 
       <div className="rv-grid">
-        {products.map((p, i) => {
-          const grads = CAT_GRADIENTS[p.category_id] ?? CAT_GRADIENTS['cat-1'];
-          const bg = grads[i % grads.length];
+        {products.map(p => {
+          const imgs   = getProductImages(p);
+          const hasImg = !!imgs.primary;
           return (
             <button
               key={p.id}
@@ -61,11 +61,39 @@ export default function RecentlyViewed() {
               onClick={() => openProductOverlay(p)}
               aria-label={p.name}
             >
-              <div className="rv-card-img" style={{ background: bg }}>
-                <span className="rv-card-init">
-                  {p.name.split(' ').map((w: string) => w[0]).join('').slice(0, 3)}
-                </span>
+              <div className="rv-card-img">
+                {hasImg ? (
+                  <Image
+                    src={imgs.primary!}
+                    alt={p.name}
+                    fill
+                    sizes="(max-width:768px) 45vw, 200px"
+                    style={{ objectFit: 'cover', objectPosition: 'top center' }}
+                    loading="lazy"
+                  />
+                ) : (
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    background: 'linear-gradient(135deg,#1a1a1a,#111)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <span style={{
+                      fontSize: 28, fontWeight: 900,
+                      color: 'rgba(255,255,255,0.1)',
+                      fontFamily: 'var(--font-display)',
+                    }}>
+                      {getProductInitials(p)}
+                    </span>
+                  </div>
+                )}
+                {/* Bottom fade */}
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0, height: '40%',
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)',
+                  pointerEvents: 'none',
+                }} />
               </div>
+
               <div className="rv-card-info">
                 <div className="rv-card-name">{p.name}</div>
                 <div className="rv-card-price">{formatPrice(p.price)}</div>
