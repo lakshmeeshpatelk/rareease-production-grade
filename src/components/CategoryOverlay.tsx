@@ -6,8 +6,10 @@ import { useUIStore } from '@/store/uiStore';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useProductsStore } from '@/store/productsStore';
+import Image from 'next/image';
 import { CAT_GRADIENTS, formatPrice } from '@/lib/utils';
 import { CATEGORIES as STATIC_CATEGORIES } from '@/lib/categories';
+import { getProductImages } from '@/lib/productImage';
 import { Product } from '@/types';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 
@@ -313,15 +315,31 @@ export default function CategoryOverlay() {
                     onClick={() => openProductOverlay(product)}
                     className="co-card"
                   >
-                    {/* Background gradient */}
-                    <div
-                      className="co-card-bg"
-                      style={{ background: grads[i % grads.length] }}
-                    >
-                      <span className="co-card-initials">
-                        {product.name.split(' ').map((w: string) => w[0]).join('')}
-                      </span>
-                    </div>
+                    {/* Product image or gradient fallback */}
+                    {(() => {
+                      const imgs = getProductImages(product);
+                      return imgs.primary ? (
+                        <div className="co-card-bg" style={{ position: 'relative', overflow: 'hidden' }}>
+                          <Image
+                            src={imgs.primary}
+                            alt={product.name}
+                            fill
+                            sizes="(max-width:768px) 50vw, 20vw"
+                            style={{ objectFit: 'cover' }}
+                            loading="lazy"
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          className="co-card-bg"
+                          style={{ background: grads[i % grads.length] }}
+                        >
+                          <span className="co-card-initials">
+                            {product.name.split(' ').map((w: string) => w[0]).join('')}
+                          </span>
+                        </div>
+                      );
+                    })()}
 
                     {/* Badge */}
                     {product.badge && (

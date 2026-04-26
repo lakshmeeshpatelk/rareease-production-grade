@@ -6,8 +6,10 @@ import { useUIStore } from '@/store/uiStore';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useProductsStore } from '@/store/productsStore';
+import Image from 'next/image';
 import { CAT_GRADIENTS, formatPrice } from '@/lib/utils';
 import { CATEGORIES as STATIC_CATEGORIES } from '@/lib/categories';
+import { getProductImages } from '@/lib/productImage';
 import { Product } from '@/types';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 
@@ -360,11 +362,27 @@ function FCCard({ product, index, bg, onView, onQuickAdd, onWishlist, isWishlist
       className="fc-card"
     >
       {/* Background */}
-      <div className="fc-card-bg" style={{ background: bg }}>
-        <span className="fc-card-initials">
-          {product.name.split(' ').map((w: string) => w[0]).join('')}
-        </span>
-      </div>
+      {(() => {
+        const imgs = getProductImages(product);
+        return imgs.primary ? (
+          <div className="fc-card-bg" style={{ position: 'relative', overflow: 'hidden' }}>
+            <Image
+              src={imgs.primary}
+              alt={product.name}
+              fill
+              sizes="(max-width:768px) 50vw, 16vw"
+              style={{ objectFit: 'cover' }}
+              loading="lazy"
+            />
+          </div>
+        ) : (
+          <div className="fc-card-bg" style={{ background: bg }}>
+            <span className="fc-card-initials">
+              {product.name.split(' ').map((w: string) => w[0]).join('')}
+            </span>
+          </div>
+        );
+      })()}
 
       {/* Index number */}
       <div className="fc-card-num">{String(index + 1).padStart(2, '0')}</div>
