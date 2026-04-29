@@ -1,0 +1,13 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Block admin panel from indexing
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+
+# Block internal Next.js routes
+Disallow: /_next/
+
+Sitemap: https://rareease.com/sitemap.xml

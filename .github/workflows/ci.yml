@@ -1,0 +1,121 @@
+# .github/workflows/ci.yml
+# Runs on every PR and push to main:
+#   1. TypeScript type-check
+#   2. Unit/integration tests (payments.test.ts)
+#   3. Playwright E2E tests against preview deployment
+#   4. Deploys to Vercel staging (preview) on PR, production on main
+
+name: CI / CD
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ── 1. Type-check ─────────────────────────────────────────────────
+  typecheck:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+  # ── 2. Unit / integration tests ───────────────────────────────────
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    needs: typecheck
+    env:
+      # Secrets set in GitHub → Settings → Secrets → Actions
+      NEXT_PUBLIC_SUPABASE_URL:    ${{ secrets.STAGING_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY:   ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+      CASHFREE_APP_ID:             ${{ secrets.CASHFREE_APP_ID }}
+      CASHFREE_SECRET_KEY:         ${{ secrets.CASHFREE_SECRET_KEY }}
+      CASHFREE_WEBHOOK_SECRET:     ${{ secrets.CASHFREE_WEBHOOK_SECRET }}
+      ADMIN_PASSWORD:              ${{ secrets.ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - run: npm test
+        env:
+          TEST_BASE_URL: 'http://localhost:3000'
+
+  # ── 3. Deploy to Vercel (preview on PR, prod on main) ─────────────
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - name: Deploy to Vercel
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token:   ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id:  ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          # Push to main → production; everything else → preview
+          vercel-args: ${{ github.ref == 'refs/heads/main' && '--prod' || '' }}
+      - name: Comment preview URL on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ Preview deployed: ${{ steps.deploy.outputs.preview-url }}`
+            })
+
+  # ── 4. E2E tests against the preview URL ─────────────────────────
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run Playwright tests
+        run: npx playwright test
+        env:
+          TEST_BASE_URL: ${{ needs.deploy.outputs.preview-url || 'http://localhost:3000' }}
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # ── 5. Lighthouse performance audit ──────────────────────────────
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm install -g @lhci/cli
+      - name: Run Lighthouse CI
+        run: lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+          LHCI_BUILD_CONTEXT__CURRENT_BRANCH: ${{ github.ref_name }}
+          TEST_BASE_URL: ${{ needs.deploy.outputs.preview-url || 'https://rareease.com' }}
