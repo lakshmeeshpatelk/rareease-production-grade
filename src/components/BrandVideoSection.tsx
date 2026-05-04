@@ -3,22 +3,44 @@
 import { useEffect, useRef, useState } from 'react';
 
 export default function BrandVideoSection() {
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const rafRef   = useRef<number>();
+  const [videoUrl, setVideoUrl]   = useState<string | null>(null);
+  const [loaded,   setLoaded]     = useState(false);
+  const [inView,   setInView]     = useState(false);
+  const [progress, setProgress]   = useState(0);
+  const videoRef    = useRef<HTMLVideoElement>(null);
+  const sectionRef  = useRef<HTMLElement>(null);
+  const rafRef      = useRef<number>();
 
-  // Fetch video URL from public API
+  // ── Only fetch the video URL once the section enters the viewport ──────────
+  // This prevents the browser from requesting the video src on initial page load.
   useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' } // start loading 200px before the section is visible
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // ── Fetch the video URL from the API only after section is in view ─────────
+  useEffect(() => {
+    if (!inView) return;
     fetch('/api/brand-video')
       .then(r => r.json())
       .then(d => setVideoUrl(d.url ?? null))
       .catch(() => {});
-  }, []);
+  }, [inView]);
 
-  // Animate progress bar in sync with video
+  // ── Animate progress bar in sync with video ────────────────────────────────
   useEffect(() => {
+    if (!loaded) return;
     const tick = () => {
       const v = videoRef.current;
       if (v && v.duration > 0) {
@@ -30,75 +52,72 @@ export default function BrandVideoSection() {
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [loaded]);
 
-  // Don't render if no video uploaded
-  if (!videoUrl) return null;
-
   return (
-    <section className="bvs-wrap">
-      <div className="bvs-inner">
+    <section className="bvs-wrap" ref={sectionRef}>
+      {/* Only render the inner content once in viewport */}
+      {inView && videoUrl && (
+        <div className="bvs-inner">
 
-        {/* Label */}
-        <div className="bvs-label-row">
-          <span className="bvs-pill">▶ BRAND FILM</span>
-        </div>
-
-        {/* Video container */}
-        <div className="bvs-video-outer">
-          {/* Decorative corner marks */}
-          <span className="bvs-corner bvs-corner--tl" />
-          <span className="bvs-corner bvs-corner--tr" />
-          <span className="bvs-corner bvs-corner--bl" />
-          <span className="bvs-corner bvs-corner--br" />
-
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            className="bvs-video"
-            onCanPlay={() => setLoaded(true)}
-          />
-
-          {/* Loading shimmer until video is ready */}
-          {!loaded && (
-            <div className="bvs-shimmer" />
-          )}
-
-          {/* Subtle gradient overlay — keeps branding text legible */}
-          <div className="bvs-gradient-overlay" />
-
-          {/* Bottom meta bar */}
-          <div className="bvs-meta">
-            <span className="bvs-meta-brand">RARE EASE</span>
-            <span className="bvs-meta-tag">15s</span>
+          {/* Label */}
+          <div className="bvs-label-row">
+            <span className="bvs-pill">▶ BRAND FILM</span>
           </div>
-        </div>
 
-        {/* Progress bar */}
-        <div className="bvs-progress-track">
-          <div className="bvs-progress-fill" style={{ width: `${progress}%` }} />
-        </div>
+          {/* Video container */}
+          <div className="bvs-video-outer">
+            {/* Decorative corner marks */}
+            <span className="bvs-corner bvs-corner--tl" />
+            <span className="bvs-corner bvs-corner--tr" />
+            <span className="bvs-corner bvs-corner--bl" />
+            <span className="bvs-corner bvs-corner--br" />
 
-      </div>
+            <video
+              ref={videoRef}
+              src={videoUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="none"      // ← was "auto" — browser no longer downloads the
+                                  //   whole video on page load. It fetches on play.
+              className="bvs-video"
+              onCanPlay={() => setLoaded(true)}
+            />
+
+            {/* Loading shimmer until video is ready */}
+            {!loaded && <div className="bvs-shimmer" />}
+
+            {/* Subtle gradient overlay */}
+            <div className="bvs-gradient-overlay" />
+
+            {/* Bottom meta bar */}
+            <div className="bvs-meta">
+              <span className="bvs-meta-brand">RARE EASE</span>
+              <span className="bvs-meta-tag">15s</span>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="bvs-progress-track">
+            <div className="bvs-progress-fill" style={{ width: `${progress}%` }} />
+          </div>
+
+        </div>
+      )}
 
       <style>{`
-        /* ── Wrapper ─────────────────────────────────── */
         .bvs-wrap {
           width: 100%;
           background: #0a0a0a;
           padding: 48px 0 40px;
           overflow: hidden;
+          min-height: 1px; /* keeps the section in the DOM for the observer */
         }
         .bvs-inner {
           max-width: 900px;
           margin: 0 auto;
           padding: 0 20px;
         }
-
-        /* ── Label row ───────────────────────────────── */
         .bvs-label-row {
           display: flex;
           align-items: center;
@@ -115,8 +134,6 @@ export default function BrandVideoSection() {
           padding: 4px 12px;
           background: rgba(195,206,148,0.06);
         }
-
-        /* ── Video container ─────────────────────────── */
         .bvs-video-outer {
           position: relative;
           width: 100%;
@@ -124,8 +141,6 @@ export default function BrandVideoSection() {
           background: #111;
           overflow: hidden;
         }
-
-        /* Corner brackets */
         .bvs-corner {
           position: absolute;
           width: 16px;
@@ -145,7 +160,6 @@ export default function BrandVideoSection() {
         .bvs-corner--br { bottom: 8px; right: 8px;
           border-bottom: 1.5px solid rgba(195,206,148,0.55);
           border-right: 1.5px solid rgba(195,206,148,0.55); }
-
         .bvs-video {
           position: absolute;
           inset: 0;
@@ -154,7 +168,6 @@ export default function BrandVideoSection() {
           object-fit: cover;
           display: block;
         }
-
         .bvs-shimmer {
           position: absolute;
           inset: 0;
@@ -170,20 +183,13 @@ export default function BrandVideoSection() {
           from { background-position: 200% 0; }
           to   { background-position: -200% 0; }
         }
-
         .bvs-gradient-overlay {
           position: absolute;
           inset: 0;
-          background: linear-gradient(
-            to top,
-            rgba(0,0,0,0.55) 0%,
-            transparent 50%
-          );
+          background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 50%);
           pointer-events: none;
           z-index: 1;
         }
-
-        /* ── Meta bar (inside video) ─────────────────── */
         .bvs-meta {
           position: absolute;
           bottom: 14px;
@@ -208,8 +214,6 @@ export default function BrandVideoSection() {
           border: 1px solid rgba(195,206,148,0.25);
           padding: 2px 7px;
         }
-
-        /* ── Progress bar ────────────────────────────── */
         .bvs-progress-track {
           width: 100%;
           height: 2px;
@@ -222,8 +226,6 @@ export default function BrandVideoSection() {
           background: linear-gradient(90deg, #c3ce94, rgba(195,206,148,0.4));
           transition: width 0.1s linear;
         }
-
-        /* ── Mobile tweaks ───────────────────────────── */
         @media (max-width: 600px) {
           .bvs-wrap { padding: 32px 0 28px; }
           .bvs-meta-brand { font-size: 12px; }

@@ -1,10 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ── App Router body size limit (for product image uploads)
+  // ── Remove X-Powered-By header (minor hardening + saves a few bytes) ─────
+  poweredByHeader: false,
+
   experimental: {
     serverActions: {
       bodySizeLimit: '20mb',
     },
+    // Tree-shake large packages — only the exports actually used are bundled.
+    // framer-motion alone is ~100 KB gzipped; without this Next.js ships the
+    // whole package even when only <motion.div> and AnimatePresence are used.
+    optimizePackageImports: ['framer-motion', 'date-fns'],
   },
 
   // ── Gzip/Brotli compression ──────────────────────────────────────────────

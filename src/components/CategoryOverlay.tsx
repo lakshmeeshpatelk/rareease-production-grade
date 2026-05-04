@@ -319,7 +319,11 @@ export default function CategoryOverlay() {
                     {(() => {
                       const imgs = getProductImages(product);
                       return imgs.primary ? (
+<<<<<<< HEAD
                         <div className="co-card-bg">
+=======
+                        <div className="co-card-bg" style={{ position: 'relative', overflow: 'hidden' }}>
+>>>>>>> 19a38d92a62ccb287a75e7fbb18249e81bd5c226
                           <Image
                             src={imgs.primary}
                             alt={product.name}
@@ -410,4 +414,8 @@ export default function CategoryOverlay() {
       </motion.div>
     </AnimatePresence>
   );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 19a38d92a62ccb287a75e7fbb18249e81bd5c226

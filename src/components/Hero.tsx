@@ -71,17 +71,12 @@ export default function Hero() {
     });
   }, []);
 
-  // Preload all images; cleanup prevents setState on unmounted component
+  // Mark slide 0 as loaded immediately — Next.js `priority` on the first
+  // Image tag already preloads it via <link rel="preload">. No need to spin
+  // up extra window.Image() instances for the remaining slides; the browser
+  // fetches them on-demand as the carousel advances.
   useEffect(() => {
-    let cancelled = false;
-    slides.forEach((slide, i) => {
-      const img = new window.Image();
-      img.src = slide.src;
-      img.onload = () => {
-        if (!cancelled) setLoaded(prev => { const n = [...prev]; n[i] = true; return n; });
-      };
-    });
-    return () => { cancelled = true; };
+    setLoaded(prev => { const n = [...prev]; n[0] = true; return n; });
   }, [slides]);
 
   const scrollToTrending = () => {

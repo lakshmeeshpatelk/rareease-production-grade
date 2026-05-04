@@ -42,7 +42,7 @@ export async function fetchProducts(): Promise<Product[]> {
         id, product_id, size, sku,
         inventory ( id, variant_id, quantity, reserved )
       ),
-      product_media ( id, product_id, url, alt_text, type, position )
+      product_media ( id, product_id, url, type, position )
     `)
     .eq('is_active', true)
     .order('created_at', { ascending: true });
@@ -59,7 +59,7 @@ export async function fetchProductsByCategory(categoryId: string): Promise<Produ
         id, product_id, size, sku,
         inventory ( id, variant_id, quantity, reserved )
       ),
-      product_media ( id, product_id, url, alt_text, type, position )
+      product_media ( id, product_id, url, type, position )
     `)
     .eq('category_id', categoryId)
     .eq('is_active', true)
@@ -77,7 +77,7 @@ export async function fetchProductBySlug(slug: string): Promise<Product | null> 
         id, product_id, size, sku,
         inventory ( id, variant_id, quantity, reserved )
       ),
-      product_media ( id, product_id, url, alt_text, type, position )
+      product_media ( id, product_id, url, type, position )
     `)
     .eq('slug', slug)
     .eq('is_active', true)
@@ -95,7 +95,7 @@ export async function fetchFeaturedProducts(): Promise<Product[]> {
         id, product_id, size, sku,
         inventory ( id, variant_id, quantity, reserved )
       ),
-      product_media ( id, product_id, url, alt_text, type, position )
+      product_media ( id, product_id, url, type, position )
     `)
     .eq('is_featured', true)
     .eq('is_active', true)
@@ -114,7 +114,7 @@ export async function fetchProductsByIds(ids: string[]): Promise<Product[]> {
         id, product_id, size, sku,
         inventory ( id, variant_id, quantity, reserved )
       ),
-      product_media ( id, product_id, url, alt_text, type, position )
+      product_media ( id, product_id, url, type, position )
     `)
     .in('id', ids);
   if (error) { console.error('fetchProductsByIds', error); return []; }
@@ -153,7 +153,6 @@ export function normaliseProduct(raw: Record<string, unknown>): Product {
       id: m.id as string,
       product_id: raw.id as string,
       url: m.url as string,
-      alt_text: m.alt_text as string | undefined,
       type: (m.type as 'image' | 'video') ?? 'image',
       position: m.position as number,
     }));
@@ -445,7 +444,7 @@ export async function adminFetchAllProducts(): Promise<Product[]> {
         id, product_id, size, sku,
         inventory ( id, variant_id, quantity, reserved )
       ),
-      product_media ( id, product_id, url, alt_text, type, position )
+      product_media ( id, product_id, url, type, position )
     `)
     .order('created_at', { ascending: true });
   if (error) { console.error('adminFetchAllProducts', error); return []; }
