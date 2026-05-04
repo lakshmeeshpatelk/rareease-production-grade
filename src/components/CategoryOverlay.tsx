@@ -294,7 +294,8 @@ export default function CategoryOverlay() {
               {/* ── Divider (desktop only) ── */}
               <div className="co-divider" />
             </div>
-        </div>
+          </div>{/* end co-controls-row */}
+        </div>{/* end co-header */}
 
         {/* ══════════════════════════════════════════
             PRODUCT GRID
