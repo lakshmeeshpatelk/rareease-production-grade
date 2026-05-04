@@ -12,6 +12,7 @@ import { formatPrice, getInventoryForVariant } from '@/lib/utils';
 import { useProductsStore } from '@/store/productsStore';
 import { getProductImages, getProductInitials } from '@/lib/productImage';
 import { useEscapeKey } from '@/lib/useEscapeKey';
+import { useOverlayHistory } from '@/lib/useOverlayHistory';
 
 function Stars({ rating, size = 13 }: { rating: number; size?: number }) {
   return (
@@ -481,6 +482,7 @@ export default function ProductOverlay() {
   };
 
   useEscapeKey(closeProductOverlay, !!activeProductOverlay);
+  useOverlayHistory(!!activeProductOverlay, closeProductOverlay);
 
   useEffect(() => {
     if (activeProductOverlay) {

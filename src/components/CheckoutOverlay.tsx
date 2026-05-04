@@ -6,6 +6,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useUIStore } from '@/store/uiStore';
 import { formatPrice, calcShipping } from '@/lib/utils';
 import { useEscapeKey } from '@/lib/useEscapeKey';
+import { useOverlayHistory } from '@/lib/useOverlayHistory';
 import { checkPincode, type PincodeResult } from '@/lib/pincode';
 
 // ── Types ────────────────────────────────────────────────────────
@@ -149,6 +150,7 @@ export default function CheckoutOverlay() {
   const { isCheckoutOpen, closeCheckout, addToast, openOrderTracking } = useUIStore();
 
   useEscapeKey(closeCheckout, isCheckoutOpen);
+  useOverlayHistory(isCheckoutOpen, closeCheckout);
 
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof Address, string>>>({});
 

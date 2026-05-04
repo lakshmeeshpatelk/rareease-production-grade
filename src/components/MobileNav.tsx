@@ -5,6 +5,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { CATEGORIES } from '@/lib/categories';
+import { useOverlayHistory } from '@/lib/useOverlayHistory';
 
 // Men's: cat-1, cat-3, cat-5 | Women's: cat-2, cat-4, cat-6
 const MENS_CATS = CATEGORIES.filter(c => ['cat-1', 'cat-3', 'cat-5'].includes(c.id));
@@ -40,6 +41,7 @@ export default function MobileNav() {
   const [mounted, setMounted] = useState(false);
   const [active, setActive] = useState('home');
   const [shopSheet, setShopSheet] = useState<ShopSheet>(null);
+  useOverlayHistory(shopSheet !== null, () => setShopSheet(null));
   const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setMounted(true); }, []);

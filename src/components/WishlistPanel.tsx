@@ -7,10 +7,12 @@ import { useUIStore } from '@/store/uiStore';
 import { formatPrice } from '@/lib/utils';
 import { useCartStore } from '@/store/cartStore';
 import { useEscapeKey } from '@/lib/useEscapeKey';
+import { useOverlayHistory } from '@/lib/useOverlayHistory';
 
 export default function WishlistPanel() {
   const { isWishlistOpen, closeWishlist, openProductOverlay, addToast } = useUIStore();
   useEscapeKey(closeWishlist);
+  useOverlayHistory(isWishlistOpen, closeWishlist);
   const { productIds, toggleWithSync } = useWishlistStore();
   const { getByIds } = useProductsStore();
   const { addItem, openCart } = useCartStore();

@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEscapeKey } from '@/lib/useEscapeKey';
+import { useOverlayHistory } from '@/lib/useOverlayHistory';
 import { useUIStore } from '@/store/uiStore';
 
 type PageType = 'privacy' | 'terms' | 'returns' | 'shipping';
@@ -177,6 +178,7 @@ export default function StaticPageOverlay({ type }: Props) {
   const content = CONTENT[type];
 
   useEscapeKey(close, isOpen);
+  useOverlayHistory(isOpen, close);
 
   return (
     <AnimatePresence>

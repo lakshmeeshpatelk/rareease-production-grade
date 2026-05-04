@@ -12,6 +12,7 @@ import { CATEGORIES as STATIC_CATEGORIES } from '@/lib/categories';
 import { getProductImages } from '@/lib/productImage';
 import { Product } from '@/types';
 import { useEscapeKey } from '@/lib/useEscapeKey';
+import { useOverlayHistory } from '@/lib/useOverlayHistory';
 
 const SORT_OPTIONS = [
   { label: 'Featured',           value: 'featured'   },
@@ -23,6 +24,7 @@ const SORT_OPTIONS = [
 export default function FullCollectionOverlay() {
   const { isFullCollectionOpen, closeFullCollection, openProductOverlay, addToast } = useUIStore();
   useEscapeKey(closeFullCollection);
+  useOverlayHistory(isFullCollectionOpen, closeFullCollection);
   const { addItem, openCart } = useCartStore();
   const { toggleWithSync, productIds } = useWishlistStore();
   const { products: allStoreProducts, categories: storeCategories, load } = useProductsStore();

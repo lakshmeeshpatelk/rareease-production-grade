@@ -3,10 +3,12 @@
 import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useUIStore } from '@/store/uiStore';
+import { useOverlayHistory } from '@/lib/useOverlayHistory';
 import { loadNotifications, markNotificationsRead } from '@/lib/notifications';
 
 export default function NotificationPanel() {
   const { isNotificationsOpen, closeNotifications, notifications, markAllRead, addNotification } = useUIStore();
+  useOverlayHistory(isNotificationsOpen, closeNotifications);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 

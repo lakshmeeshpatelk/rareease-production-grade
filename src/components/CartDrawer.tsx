@@ -8,6 +8,7 @@ import { useProductsStore } from '@/store/productsStore';
 import { formatPrice, getInventoryForVariant, SHIPPING_FREE_THRESHOLD, SHIPPING_COST } from '@/lib/utils';
 import CheckoutOverlayTrigger from './CheckoutOverlayTrigger';
 import { useEscapeKey } from '@/lib/useEscapeKey';
+import { useOverlayHistory } from '@/lib/useOverlayHistory';
 import { useFocusTrap } from '@/lib/useFocusTrap';
 
 export default function CartDrawer() {
@@ -15,6 +16,7 @@ export default function CartDrawer() {
   const { products } = useProductsStore();
 
   useEscapeKey(closeCart);
+  useOverlayHistory(isOpen, closeCart);
   const trapRef = useFocusTrap<HTMLDivElement>(isOpen);
   const { addToast } = useUIStore();
 

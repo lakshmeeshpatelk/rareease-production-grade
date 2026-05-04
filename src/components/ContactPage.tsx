@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useUIStore } from '@/store/uiStore';
 import { useEscapeKey } from '@/lib/useEscapeKey';
+import { useOverlayHistory } from '@/lib/useOverlayHistory';
 
 export default function ContactPage() {
   const { isContactOpen, closeContact, addToast } = useUIStore();
@@ -13,6 +14,7 @@ export default function ContactPage() {
   const [sending, setSending] = useState(false);
 
   useEscapeKey(closeContact, isContactOpen);
+  useOverlayHistory(isContactOpen, closeContact);
 
   const handleSubmit = async () => {
     if (!name.trim()) { addToast('⚠', 'Please enter your name'); return; }

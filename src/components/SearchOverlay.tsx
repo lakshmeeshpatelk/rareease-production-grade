@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useUIStore } from '@/store/uiStore';
 import { useProductsStore } from '@/store/productsStore';
 import { formatPrice, CAT_GRADIENTS } from '@/lib/utils';
+import { useOverlayHistory } from '@/lib/useOverlayHistory';
 
 const TRENDING = [
   'Urban Flux Tee', 'Block Core Set', 'Oversized Drop',
@@ -32,6 +33,7 @@ function loadSearchHistory(): string[] {
 
 export default function SearchOverlay() {
   const { isSearchOpen, closeSearch, openProductOverlay } = useUIStore();
+  useOverlayHistory(isSearchOpen, closeSearch);
   const { products: allProducts, load, getByIds } = useProductsStore();
   const [query,       setQuery]       = useState('');
   const [focused,     setFocused]     = useState(false);

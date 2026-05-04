@@ -12,6 +12,7 @@ import { CATEGORIES as STATIC_CATEGORIES } from '@/lib/categories';
 import { getProductImages } from '@/lib/productImage';
 import { Product } from '@/types';
 import { useEscapeKey } from '@/lib/useEscapeKey';
+import { useOverlayHistory } from '@/lib/useOverlayHistory';
 
 const SORT_OPTIONS = [
   { label: 'Featured', value: 'featured' },
@@ -25,6 +26,7 @@ const SIZES = ['All', 'S', 'M', 'L', 'XL', 'XXL'];
 export default function CategoryOverlay() {
   const { activeCategoryOverlay, closeCategoryOverlay, openProductOverlay, openCategoryOverlay, addToast } = useUIStore();
   useEscapeKey(closeCategoryOverlay);
+  useOverlayHistory(!!activeCategoryOverlay, closeCategoryOverlay);
   const { addItem, openCart } = useCartStore();
   const { toggleWithSync, productIds } = useWishlistStore();
   const { products: allStoreProducts, categories: storeCategories, load } = useProductsStore();

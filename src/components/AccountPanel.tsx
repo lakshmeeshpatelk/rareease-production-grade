@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useUIStore } from '@/store/uiStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useEscapeKey } from '@/lib/useEscapeKey';
+import { useOverlayHistory } from '@/lib/useOverlayHistory';
 import { getClient } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import AuthPhone from './AuthPhone';
@@ -169,6 +170,7 @@ const FieldLabel = ({ text, required }: { text: string; required?: boolean }) =>
 export default function AccountPanel() {
   const { isAccountOpen, closeAccount, openOrderTracking, openWishlist, addToast, toggleNotifications } = useUIStore();
   useEscapeKey(closeAccount);
+  useOverlayHistory(isAccountOpen, closeAccount);
   const { productIds } = useWishlistStore();
 
   const [mounted,    setMounted]    = useState(false);

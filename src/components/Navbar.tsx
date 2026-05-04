@@ -9,6 +9,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { CATEGORIES } from '@/lib/categories';
+import { useOverlayHistory } from '@/lib/useOverlayHistory';
 
 const MENS_CATS = CATEGORIES.filter(c => ['cat-1', 'cat-3', 'cat-5'].includes(c.id));
 const WOMENS_CATS = CATEGORIES.filter(c => ['cat-2', 'cat-4', 'cat-6'].includes(c.id));
@@ -48,6 +49,7 @@ export default function Navbar() {
   useEffect(() => { setMounted(true); }, []);
 
   const close = () => { closeMobileMenu(); setShopExpanded(null); };
+  useOverlayHistory(isMobileMenuOpen, close);
 
   const goCategory = (catId: string) => {
     const cat = CATEGORIES.find(c => c.id === catId);

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useEscapeKey } from '@/lib/useEscapeKey';
+import { useOverlayHistory } from '@/lib/useOverlayHistory';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useUIStore } from '@/store/uiStore';
 import type { Order } from '@/types';
@@ -40,6 +41,7 @@ export default function OrderTrackingOverlay() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEscapeKey(closeOrderTracking, isOrderTrackingOpen);
+  useOverlayHistory(isOrderTrackingOpen, closeOrderTracking);
 
   useEffect(() => {
     if (isOrderTrackingOpen) {
