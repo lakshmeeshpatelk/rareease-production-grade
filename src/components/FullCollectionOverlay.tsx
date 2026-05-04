@@ -149,129 +149,75 @@ export default function FullCollectionOverlay() {
           </button>
         </div>
 
-        {/* Row 2: controls */}
+        {/* Row 2: Sticky category tab pills + sort */}
         <div className="fc-controls-row">
+          {/* ALL tab */}
+          <button
+            onClick={() => setActiveCat('all')}
+            className={`fc-tab-pill${activeCat === 'all' ? ' fc-tab-pill--active' : ''}`}
+          >
+            All
+            <span className="fc-tab-count">{ALL_PRODUCTS.length}</span>
+          </button>
 
-          {/* Category dropdown */}
-          <div ref={catDropRef} style={{ position: 'relative', flexShrink: 0 }}>
-            <button
-              onClick={() => {
-                if (!catOpen && catDropRef.current) {
-                  const r = catDropRef.current.getBoundingClientRect();
-                  const clampedLeft = Math.min(r.left, window.innerWidth - 234);
-                  setCatDropPos({ top: r.bottom + 8, left: Math.max(8, clampedLeft) });
-                }
-                setCatOpen(!catOpen); setSortOpen(false);
-              }}
-              className={`fc-ctrl-btn fc-cat-btn${catOpen ? ' fc-ctrl-btn--open' : ''}`}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="7" height="7" rx="1"/>
-                <rect x="14" y="3" width="7" height="7" rx="1"/>
-                <rect x="3" y="14" width="7" height="7" rx="1"/>
-                <rect x="14" y="14" width="7" height="7" rx="1"/>
-              </svg>
-              <span>Category</span>
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-                style={{ transform: catOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>
-                <path d="M6 9l6 6 6-6"/>
-              </svg>
-            </button>
+          {/* Per-category tab pills */}
+          {CATEGORIES.map(c => {
+            const count = ALL_PRODUCTS.filter(p => p.category_id === c.id).length;
+            if (count === 0) return null;
+            return (
+              <button
+                key={c.id}
+                onClick={() => setActiveCat(c.id)}
+                className={`fc-tab-pill${activeCat === c.id ? ' fc-tab-pill--active' : ''}`}
+              >
+                {c.name}
+                <span className="fc-tab-count">{count}</span>
+              </button>
+            );
+          })}
 
-            <AnimatePresence>
-              {catOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.15 }}
-                  className="fc-dropdown fc-cat-dropdown"
-                  style={{ position: 'fixed', top: catDropPos.top, left: catDropPos.left, right: 'auto', zIndex: 9999 }}
-                >
-                  <div className="fc-dropdown-header">Browse Categories</div>
-
-                  {/* All option */}
-                  <button
-                    onClick={() => { setActiveCat('all'); setCatOpen(false); }}
-                    className={`fc-dropdown-item${activeCat === 'all' ? ' fc-dropdown-item--active' : ''}`}
+          {/* Spacer + sort — pushed right */}
+          <div style={{ flexShrink: 0, marginLeft: 'auto' }}>
+            <div ref={sortDropRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => {
+                  if (!sortOpen && sortDropRef.current) {
+                    const r = sortDropRef.current.getBoundingClientRect();
+                    setSortDropPos({ top: r.bottom + 8, right: window.innerWidth - r.right });
+                  }
+                  setSortOpen(!sortOpen);
+                }}
+                className={`fc-sort-pill${sortOpen ? ' fc-sort-pill--open' : ''}`}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 6h18M7 12h10M11 18h2" strokeLinecap="round"/>
+                </svg>
+                <span>{SORT_OPTIONS.find(o => o.value === sortVal)?.label ?? 'Sort'}</span>
+              </button>
+              <AnimatePresence>
+                {sortOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                    transition={{ duration: 0.13 }}
+                    className="fc-dropdown fc-sort-dropdown"
+                    style={{ position: 'fixed', top: sortDropPos.top, right: sortDropPos.right, left: 'auto', zIndex: 9999 }}
                   >
-                    <div>
-                      <div className="fc-drop-name">All Collections</div>
-                      <div className="fc-drop-label">{ALL_PRODUCTS.length} total pieces</div>
-                    </div>
-                    {activeCat === 'all' && <span className="fc-drop-check">✓</span>}
-                  </button>
-
-                  {CATEGORIES.map(c => {
-                    const count = ALL_PRODUCTS.filter(p => p.category_id === c.id).length;
-                    const isActive = c.id === activeCat;
-                    return (
+                    {SORT_OPTIONS.map(opt => (
                       <button
-                        key={c.id}
-                        onClick={() => { setActiveCat(c.id); setCatOpen(false); }}
-                        className={`fc-dropdown-item${isActive ? ' fc-dropdown-item--active' : ''}`}
+                        key={opt.value}
+                        onClick={() => { setSortVal(opt.value); setSortOpen(false); }}
+                        className={`fc-dropdown-item${sortVal === opt.value ? ' fc-dropdown-item--active' : ''}`}
                       >
-                        <div>
-                          <div className="fc-drop-name">{c.name}</div>
-                          <div className="fc-drop-label">{c.label} · {count} pieces</div>
-                        </div>
-                        {isActive && <span className="fc-drop-check">✓</span>}
+                        <span>{opt.label}</span>
+                        {sortVal === opt.value && <span className="fc-drop-check">✓</span>}
                       </button>
-                    );
-                  })}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Divider */}
-          <div className="fc-divider" />
-
-          {/* Sort dropdown */}
-          <div ref={sortDropRef} style={{ position: 'relative', flexShrink: 0 }}>
-            <button
-              onClick={() => {
-                if (!sortOpen && sortDropRef.current) {
-                  const r = sortDropRef.current.getBoundingClientRect();
-                  setSortDropPos({ top: r.bottom + 8, right: window.innerWidth - r.right });
-                }
-                setSortOpen(!sortOpen); setCatOpen(false);
-              }}
-              className={`fc-ctrl-btn${sortOpen ? ' fc-ctrl-btn--open' : ''}`}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 6h18M7 12h10M11 18h2" strokeLinecap="round"/>
-              </svg>
-              <span>Sort</span>
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-                style={{ transform: sortOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>
-                <path d="M6 9l6 6 6-6"/>
-              </svg>
-            </button>
-
-            <AnimatePresence>
-              {sortOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.15 }}
-                  className="fc-dropdown fc-sort-dropdown"
-                  style={{ position: 'fixed', top: sortDropPos.top, right: sortDropPos.right, left: 'auto', zIndex: 9999 }}
-                >
-                  {SORT_OPTIONS.map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => { setSortVal(opt.value); setSortOpen(false); }}
-                      className={`fc-dropdown-item${sortVal === opt.value ? ' fc-dropdown-item--active' : ''}`}
-                    >
-                      <span>{opt.label}</span>
-                      {sortVal === opt.value && <span className="fc-drop-check">✓</span>}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </div>
@@ -281,46 +227,75 @@ export default function FullCollectionOverlay() {
       ══════════════════════════════════════════ */}
       <div className="fc-scroll">
         {activeCat === 'all' ? (
-          /* ── ALL: grouped by category ── */
-          CATEGORIES.map(cat => {
-            const catProducts = applySort(ALL_PRODUCTS.filter(p => p.category_id === cat.id));
-            if (catProducts.length === 0) return null;
-            return (
-              <div key={cat.id} className="fc-cat-section">
-                {/* Section header */}
-                <div className="fc-section-header">
-                  <div>
-                    <div className="fc-section-label">{cat.label}</div>
-                    <h3 className="fc-section-title">{cat.name.toUpperCase()}</h3>
+          /* ── ALL: each category as a horizontal scroll preview strip ── */
+          <div className="fc-all-view">
+            {CATEGORIES.map(cat => {
+              const catProducts = applySort(ALL_PRODUCTS.filter(p => p.category_id === cat.id));
+              if (catProducts.length === 0) return null;
+              const preview = catProducts.slice(0, 8);
+              return (
+                <div key={cat.id} className="fc-cat-row">
+                  {/* Section header */}
+                  <div className="fc-section-header">
+                    <div>
+                      <div className="fc-section-label">{cat.label}</div>
+                      <h3 className="fc-section-title">{cat.name}</h3>
+                    </div>
+                    <button onClick={() => setActiveCat(cat.id)} className="fc-section-view-all">
+                      See all {catProducts.length} →
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setActiveCat(cat.id)}
-                    className="fc-section-view-all"
-                  >
-                    View all {catProducts.length} →
-                  </button>
-                </div>
 
-                {/* Product grid */}
-                <div className="fc-product-grid">
-                  {catProducts.map((product: Product, i: number) => (
-                    <FCCard
-                      key={product.id}
-                      product={product}
-                      index={i}
-                      bg={getBg(cat.id, i)}
-                      onView={() => openProductOverlay(product)}
-                      onQuickAdd={(e) => handleQuickAdd(e, product)}
-                      onWishlist={(e) => handleWishlist(e, product)}
-                      isWishlisted={mounted && productIds.includes(product.id)}
-                    />
-                  ))}
+                  {/* Horizontal scroll strip — 2 rows of 4 on mobile, single row on desktop */}
+                  <div className="fc-h-strip">
+                    {preview.map((product: Product, i: number) => (
+                      <div key={product.id} className="fc-h-card" onClick={() => openProductOverlay(product)}>
+                        <div className="fc-h-img">
+                          {(() => {
+                            const imgs = getProductImages(product);
+                            return imgs.primary ? (
+                              <Image
+                                src={imgs.primary}
+                                alt={product.name}
+                                fill
+                                sizes="(max-width:768px) 42vw, 16vw"
+                                style={{ objectFit: 'cover', objectPosition: 'center top' }}
+                                priority={i < 4}
+                                loading={i < 4 ? 'eager' : 'lazy'}
+                              />
+                            ) : (
+                              <div className="fc-h-placeholder">
+                                <span>{product.name.split(' ').map((w: string) => w[0]).join('').slice(0,2)}</span>
+                              </div>
+                            );
+                          })()}
+                          {product.badge && (
+                            <span className="fc-h-badge">{product.badge}</span>
+                          )}
+                        </div>
+                        <div className="fc-h-info">
+                          <div className="fc-h-name">{product.name}</div>
+                          <div className="fc-h-price">{formatPrice(product.price)}</div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* "See more" card if category has > 8 products */}
+                    {catProducts.length > 8 && (
+                      <button className="fc-h-more-card" onClick={() => setActiveCat(cat.id)}>
+                        <div className="fc-h-more-inner">
+                          <span className="fc-h-more-num">+{catProducts.length - 8}</span>
+                          <span className="fc-h-more-label">more</span>
+                        </div>
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         ) : (
-          /* ── FILTERED: flat grid ── */
+          /* ── FILTERED: full 2-col grid ── */
           <div className="fc-product-grid fc-flat-grid">
             {displayProducts.map((product: Product, i: number) => (
               <FCCard
@@ -385,6 +360,9 @@ function FCCard({ product, index, bg, onView, onQuickAdd, onWishlist, isWishlist
           </div>
         );
       })()}
+
+      {/* Index number */}
+      <div className="fc-card-num">{String(index + 1).padStart(2, '0')}</div>
 
       {/* Badge */}
       {product.badge && (
