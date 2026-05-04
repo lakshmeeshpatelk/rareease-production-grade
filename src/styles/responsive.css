@@ -594,8 +594,32 @@ html, body { overscroll-behavior-x: none; }
 .fc-subtitle { font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--sage); margin-top: 4px; }
 .fc-close-btn { background: none; border: none; color: var(--mid-gray); cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; transition: color 0.2s; min-width: 44px; min-height: 44px; flex-shrink: 0; }
 .fc-close-btn:hover { color: var(--white); }
-.fc-controls-row { display: flex; align-items: center; gap: 8px; overflow-x: auto; overflow-y: visible; padding-bottom: 14px; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.fc-controls-row { display: flex; align-items: center; gap: 0; overflow: visible; padding-bottom: 14px; }
 .fc-controls-row::-webkit-scrollbar { display: none; }
+/* Scrollable tabs area */
+.fc-tabs-scroll { display: flex; align-items: center; gap: 8px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; flex: 1; padding-right: 8px; }
+.fc-tabs-scroll::-webkit-scrollbar { display: none; }
+/* Sort stays pinned right */
+.fc-sort-wrap { flex-shrink: 0; margin-left: 0; }
+/* Sort dropdown: bottom sheet on mobile */
+.fc-dropdown {
+  background: #0c0c0c;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.85);
+  z-index: 9999;
+  overflow: hidden;
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: auto !important;
+  bottom: 0 !important;
+  min-width: unset;
+  max-height: 50vh;
+  overflow-y: auto;
+  border-bottom: none;
+  border-left: none;
+  border-right: none;
+}
 .fc-ctrl-btn { display: flex; align-items: center; gap: 6px; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--mid-gray); background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); padding: 9px 14px; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0; min-height: 38px; }
 .fc-ctrl-btn:hover, .fc-ctrl-btn--open { border-color: rgba(255,255,255,0.25); color: var(--white); background: rgba(255,255,255,0.07); }
 .fc-cat-btn { color: var(--white); border-color: rgba(195,206,148,0.3); background: rgba(195,206,148,0.06); }
@@ -632,7 +656,7 @@ html, body { overscroll-behavior-x: none; }
 .fc-wish-btn--active { border-color: var(--blush); background: rgba(254,189,166,0.2); color: var(--blush); opacity: 1 !important; }
 .fc-card-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.2) 55%, transparent 100%); pointer-events: none; }
 .fc-card-info { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 10px 10px; }
-.fc-card-name { font-family: var(--font-display); font-size: clamp(12px, 2vw, 17px); letter-spacing: 0.04em; color: var(--white); line-height: 1.1; margin-bottom: 3px; }
+.fc-card-name { font-family: var(--font-display); font-size: clamp(12px, 3.5vw, 17px); letter-spacing: 0.04em; color: var(--white); line-height: 1.1; margin-bottom: 3px; }
 .fc-card-price { font-size: 11px; color: rgba(255,255,255,0.5); display: flex; align-items: center; gap: 6px; }
 .fc-card-price strong { color: var(--white); font-weight: 400; }
 .fc-card-original { color: rgba(255,255,255,0.25); font-size: 9px; }
@@ -642,7 +666,7 @@ html, body { overscroll-behavior-x: none; }
 .fc-quick-add:hover { background: var(--sage); }
 .fc-wish-action { width: 30px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.4); color: rgba(255,255,255,0.7); font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; min-height: 34px; }
 .fc-wish-action--active { border-color: var(--blush); background: rgba(254,189,166,0.2); color: var(--blush); }
-@media (min-width: 769px) { .fc-header { padding: 24px 48px 0; } .fc-controls-row { padding-bottom: 18px; gap: 12px; } .fc-scroll { padding: 28px 48px 60px; } .fc-product-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px; } .fc-cat-section { margin-bottom: 56px; } }
+@media (min-width: 769px) { .fc-header { padding: 24px 48px 0; } .fc-controls-row { padding-bottom: 18px; gap: 12px; } .fc-tabs-scroll { gap: 12px; } .fc-scroll { padding: 28px 48px 60px; } .fc-product-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px; } .fc-cat-section { margin-bottom: 56px; } .fc-dropdown { position: fixed !important; bottom: auto !important; left: auto !important; right: auto !important; min-width: 200px; max-height: none; overflow: auto; border: 1px solid rgba(255,255,255,0.1); } }
 @media (min-width: 1280px) { .fc-product-grid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); } }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -694,11 +718,11 @@ html, body { overscroll-behavior-x: none; }
 }
 .fc-tab-pill:hover { color: rgba(255,255,255,0.75); border-color: rgba(255,255,255,0.18); }
 .fc-tab-pill--active {
-  color: #000;
-  background: #fff;
-  border-color: #fff;
+  color: var(--black) !important;
+  background: var(--sage) !important;
+  border-color: var(--sage) !important;
 }
-.fc-tab-pill--active .fc-tab-count { color: rgba(0,0,0,0.45); }
+.fc-tab-pill--active .fc-tab-count { color: rgba(0,0,0,0.5) !important; }
 .fc-tab-count {
   font-size: 8px;
   color: rgba(255,255,255,0.25);

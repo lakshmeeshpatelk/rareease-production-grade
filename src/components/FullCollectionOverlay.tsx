@@ -151,6 +151,7 @@ export default function FullCollectionOverlay() {
 
         {/* Row 2: Sticky category tab pills + sort */}
         <div className="fc-controls-row">
+          <div className="fc-tabs-scroll">
           {/* ALL tab */}
           <button
             onClick={() => setActiveCat('all')}
@@ -175,9 +176,10 @@ export default function FullCollectionOverlay() {
               </button>
             );
           })}
+          </div>
 
-          {/* Spacer + sort — pushed right */}
-          <div style={{ flexShrink: 0, marginLeft: 'auto' }}>
+          {/* Sort — pinned right */}
+          <div className="fc-sort-wrap">
             <div ref={sortDropRef} style={{ position: 'relative' }}>
               <button
                 onClick={() => {
@@ -197,12 +199,12 @@ export default function FullCollectionOverlay() {
               <AnimatePresence>
                 {sortOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
                     transition={{ duration: 0.13 }}
                     className="fc-dropdown fc-sort-dropdown"
-                    style={{ position: 'fixed', top: sortDropPos.top, right: sortDropPos.right, left: 'auto', zIndex: 9999 }}
+                    style={{ zIndex: 9999 }}
                   >
                     {SORT_OPTIONS.map(opt => (
                       <button
