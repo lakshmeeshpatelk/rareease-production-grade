@@ -934,6 +934,7 @@ html, body { overscroll-behavior-x: none; }
 }
 @media (min-width: 1440px) {
   .fc-product-grid { grid-template-columns: repeat(5, 1fr); }
+}
 
 /* ══════════════════════════════════════════════════════════════════
    dvh SUPPORT — full-screen overlays
