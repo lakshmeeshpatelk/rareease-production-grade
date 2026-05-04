@@ -10,9 +10,10 @@ import AdminContent    from './AdminContent';
 import AdminCustomers  from './AdminCustomers';
 import AdminCoupons    from './AdminCoupons';
 import AdminCategories from './AdminCategories';
-import AdminExchanges  from './AdminExchanges';
+import AdminExchanges         from './AdminExchanges';
+import AdminHomepageProducts  from './AdminHomepageProducts';
 
-type Page = 'dashboard' | 'orders' | 'products' | 'inventory' | 'reviews' | 'content' | 'customers' | 'coupons' | 'categories' | 'exchanges';
+type Page = 'dashboard' | 'orders' | 'products' | 'inventory' | 'reviews' | 'content' | 'customers' | 'coupons' | 'categories' | 'exchanges' | 'homepage';
 
 const NAV: { id: Page; label: string; section?: string; icon: React.ReactNode }[] = [
   {
@@ -55,13 +56,17 @@ const NAV: { id: Page; label: string; section?: string; icon: React.ReactNode }[
     id:'content', label:'Content & Settings',
     icon:<svg className="adm-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
   },
+  {
+    id:'homepage', label:'Homepage & Order', section:'Storefront',
+    icon:<svg className="adm-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+  },
 ];
 
 const PAGE_TITLES: Record<Page, string> = {
   dashboard:'Dashboard', orders:'Orders', products:'Products',
   inventory:'Inventory', reviews:'Reviews', content:'Content & Settings',
   customers:'Customers', coupons:'Coupons & Discounts', categories:'Categories',
-  exchanges:'Exchanges & Cancellations',
+  exchanges:'Exchanges & Cancellations', homepage:'Homepage & Collection Order',
 };
 const PAGE_SUBS: Record<Page, string> = {
   dashboard:'Overview & alerts', orders:'Manage & track orders', products:'Edit pricing & visibility',
@@ -69,6 +74,7 @@ const PAGE_SUBS: Record<Page, string> = {
   content:'Hero, announcements & info', customers:'Customer list & profiles',
   coupons:'Create and manage discount codes', categories:'Edit category names and labels',
   exchanges:'Exchange requests & cancellations per your policy',
+  homepage:'Pick which products show on homepage and control display order',
 };
 
 interface Props { onLogout: () => void; }
@@ -101,6 +107,7 @@ export default function AdminShell({ onLogout }: Props) {
       case 'reviews':     return <AdminReviews />;
       case 'content':     return <AdminContent />;
       case 'exchanges':   return <AdminExchanges />;
+      case 'homepage':    return <AdminHomepageProducts />;
     }
   };
 

@@ -27,6 +27,9 @@ export interface Product {
   badge?: string;
   is_featured: boolean;
   is_active: boolean;
+  homepage_featured?: boolean;
+  homepage_sort_order?: number;
+  collection_sort_order?: number;
   created_at: string;
   // joined
   category?: Category;

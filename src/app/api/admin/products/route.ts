@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
   const { data, error } = await createAdminClient()
     .from('products')
     .select('*, variants(id, product_id, size, sku, inventory(id, variant_id, quantity, reserved)), product_media(id, product_id, url, type, position, alt_text)')
+    .order('collection_sort_order', { ascending: true })
     .order('created_at', { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data ?? []);

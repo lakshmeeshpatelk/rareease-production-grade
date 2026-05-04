@@ -75,6 +75,7 @@ export default async function CollectionPage({ params }: Props) {
       .select(`*, media:product_media(*), variants(*, inventory(*))`)
       .eq('category_id', category.id)
       .eq('is_active', true)
+      .order('collection_sort_order', { ascending: true })
       .order('created_at', { ascending: false });
 
     return <CollectionPageClient category={category} products={products ?? []} />;

@@ -155,6 +155,14 @@ function AllProductsGrid() {
 
   const filtered = useMemo(() => {
     let products = allProducts.filter(p => p.is_active);
+
+    // When viewing "All" category on homepage, show only homepage_featured products (if any are set)
+    // otherwise fall back to all products
+    const hasHomepageFeatured = products.some(p => p.homepage_featured);
+    if (activeCat === 'all' && activeSort === 'default' && hasHomepageFeatured && !activeSize && !inStockOnly) {
+      products = products.filter(p => p.homepage_featured);
+    }
+
     if (activeCat !== 'all') products = products.filter(p => p.category_id === activeCat);
     if (activeSize) {
       products = products.filter(p => {
@@ -171,7 +179,13 @@ function AllProductsGrid() {
       case 'price-asc':  return [...products].sort((a, b) => a.price - b.price);
       case 'price-desc': return [...products].sort((a, b) => b.price - a.price);
       case 'newest':     return [...products].sort((a, b) => b.created_at.localeCompare(a.created_at));
-      default:           return products;
+      default:
+        // Use homepage_sort_order when showing homepage_featured products,
+        // otherwise use collection_sort_order
+        if (activeCat === 'all' && hasHomepageFeatured && !activeSize && !inStockOnly) {
+          return [...products].sort((a, b) => (a.homepage_sort_order ?? 9999) - (b.homepage_sort_order ?? 9999));
+        }
+        return [...products].sort((a, b) => (a.collection_sort_order ?? 9999) - (b.collection_sort_order ?? 9999));
     }
   }, [allProducts, activeCat, activeSort, activeSize, inStockOnly]);
 
@@ -227,7 +241,11 @@ function AllProductsGrid() {
       <div className="sg-results-count">
         {loading && allProducts.length === 0
           ? 'Loading products…'
-          : `${filtered.length} product${filtered.length !== 1 ? 's' : ''}${activeCount > 0 ? ' matching filters' : ''}`
+          : (() => {
+              const hasHomepageFeatured = allProducts.filter(p => p.is_active).some(p => p.homepage_featured);
+              const isHomepageCurated = activeCat === 'all' && activeSort === 'default' && hasHomepageFeatured && !activeSize && !inStockOnly;
+              return `${filtered.length} product${filtered.length !== 1 ? 's' : ''}${isHomepageCurated ? ' (curated)' : activeCount > 0 ? ' matching filters' : ''}`;
+            })()
         }
       </div>
 

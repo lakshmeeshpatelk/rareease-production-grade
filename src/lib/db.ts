@@ -45,6 +45,7 @@ export async function fetchProducts(): Promise<Product[]> {
       product_media ( id, product_id, url, type, position )
     `)
     .eq('is_active', true)
+    .order('collection_sort_order', { ascending: true })
     .order('created_at', { ascending: true });
   if (error) { console.error('fetchProducts', error); return []; }
   return (data ?? []).map(normaliseProduct);
@@ -63,6 +64,7 @@ export async function fetchProductsByCategory(categoryId: string): Promise<Produ
     `)
     .eq('category_id', categoryId)
     .eq('is_active', true)
+    .order('collection_sort_order', { ascending: true })
     .order('created_at', { ascending: true });
   if (error) { console.error('fetchProductsByCategory', error); return []; }
   return (data ?? []).map(normaliseProduct);
