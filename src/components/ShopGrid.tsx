@@ -1,21 +1,18 @@
 'use client';
 
-
 import Image from 'next/image';
-
-
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useUIStore } from '@/store/uiStore';
 import { useCartStore } from '@/store/cartStore';
 import { useProductsStore } from '@/store/productsStore';
-import { formatPrice, CAT_GRADIENTS, getInventoryForVariant } from '@/lib/utils';
+import { formatPrice, getInventoryForVariant } from '@/lib/utils';
 import { getProductImages, getProductInitials } from '@/lib/productImage';
 import { CATEGORIES } from '@/lib/categories';
 import type { Product } from '@/types';
 
 const SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 
-const TOP_SELLERS_IDS  = ['mos-08', 'wos-05', 'msl-02', 'wsl-02'];
+const TOP_SELLERS_IDS = ['mos-08', 'wos-05', 'msl-02', 'wsl-02'];
 
 function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
   const { openProductOverlay, addToast } = useUIStore();
@@ -29,7 +26,6 @@ function ProductCard({ product, priority = false }: { product: Product; priority
     e.stopPropagation();
     const variant = product.variants?.find(v => v.size === size);
     if (!variant) { openProductOverlay(product); return; }
-    // Check inventory before adding
     const available = getInventoryForVariant(product, variant.id);
     if (available <= 0) { addToast('✕', `${size} is out of stock`); return; }
     const imgs = getProductImages(product);
@@ -44,11 +40,11 @@ function ProductCard({ product, priority = false }: { product: Product; priority
       <div className="pc-img-wrap">
         {hasPhoto ? (
           <>
-            <Image src={imgs.primary!} alt={product.name} fill sizes="(max-width:768px) 50vw, 25vw" style={{objectFit:'cover'}}
+            <Image src={imgs.primary!} alt={product.name} fill sizes="(max-width:768px) 50vw, 25vw" style={{ objectFit: 'cover' }}
               className={`pc-img${hovered && imgs.secondary ? ' pc-img--hide' : ''}`}
               loading={priority ? 'eager' : 'lazy'} />
             {imgs.secondary && (
-              <Image src={imgs.secondary!} alt={product.name} fill sizes="(max-width:768px) 50vw, 25vw" style={{objectFit:'cover'}}
+              <Image src={imgs.secondary!} alt={product.name} fill sizes="(max-width:768px) 50vw, 25vw" style={{ objectFit: 'cover' }}
                 className={`pc-img pc-img--alt${hovered ? ' pc-img--show' : ''}`}
                 loading="lazy" />
             )}
@@ -104,157 +100,57 @@ function ProductCard({ product, priority = false }: { product: Product; priority
   );
 }
 
-function SectionHeader({ title, catId, label, useFullCollection = false }: {
-  title: string; catId?: string; label?: string; useFullCollection?: boolean;
+function SectionHeader({ title, label, useFullCollection = false }: {
+  title: string; label?: string; useFullCollection?: boolean;
 }) {
-  const { openCategoryOverlay, openFullCollection } = useUIStore();
-  const { categories } = useProductsStore();
-  const cats = categories.length > 0 ? categories : CATEGORIES;
-
-  const handleViewAll = () => {
-    if (useFullCollection) { openFullCollection(); return; }
-    if (catId) {
-      const cat = cats.find(c => c.id === catId);
-      if (cat) openCategoryOverlay(cat);
-    }
-  };
+  const { openFullCollection } = useUIStore();
   return (
     <div className="sh-row">
       <div className="sh-left">
         {label && <span className="sh-eyebrow">{label}</span>}
         <h2 className="sh-title">{title}</h2>
       </div>
-      <button className="sh-view-all" onClick={handleViewAll}>View All →</button>
+      {useFullCollection && (
+        <button className="sh-view-all" onClick={openFullCollection}>View All →</button>
+      )}
     </div>
   );
 }
 
-// ── Sort & Filter ────────────────────────────────────────────────
-type SortKey = 'default' | 'price-asc' | 'price-desc' | 'newest';
-type SizeFilter = '' | 'S' | 'M' | 'L' | 'XL' | 'XXL';
+// ── Homepage Curated Grid ──────────────────────────────────────────
+// Shows ONLY admin-selected homepage_featured products (up to 60),
+// in the order the admin set. No filters, no sort — clean & locked.
+function HomepageCuratedGrid() {
+  const { products: allProducts, load, loading } = useProductsStore();
+  const { openFullCollection } = useUIStore();
 
-const SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: 'default',    label: 'Featured'           },
-  { value: 'newest',     label: 'Newest'             },
-  { value: 'price-asc',  label: 'Price: Low → High'  },
-  { value: 'price-desc', label: 'Price: High → Low'  },
-];
-
-function AllProductsGrid() {
-  const { openCategoryOverlay } = useUIStore();
-  const { products: allProducts, categories, load, loading } = useProductsStore();
-  const [activeCat,   setActiveCat]   = useState<string>('all');
-  const [activeSort,  setActiveSort]  = useState<SortKey>('default');
-  const [activeSize,  setActiveSize]  = useState<SizeFilter>('');
-  const [inStockOnly, setInStockOnly] = useState(false);
-
-  // Ensure loaded
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const cats = categories.length > 0 ? categories : CATEGORIES;
+  const curatedProducts = allProducts
+    .filter(p => p.is_active && p.homepage_featured)
+    .sort((a, b) => (a.homepage_sort_order ?? 9999) - (b.homepage_sort_order ?? 9999))
+    .slice(0, 60);
 
-  const filtered = useMemo(() => {
-    let products = allProducts.filter(p => p.is_active);
+  // Fallback: if admin hasn't curated anything yet, show most recent active products
+  const displayProducts = curatedProducts.length > 0
+    ? curatedProducts
+    : allProducts.filter(p => p.is_active).sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 12);
 
-    // When viewing "All" category on homepage, show only homepage_featured products (if any are set)
-    // otherwise fall back to all products
-    const hasHomepageFeatured = products.some(p => p.homepage_featured);
-    if (activeCat === 'all' && activeSort === 'default' && hasHomepageFeatured && !activeSize && !inStockOnly) {
-      products = products.filter(p => p.homepage_featured);
-    }
-
-    if (activeCat !== 'all') products = products.filter(p => p.category_id === activeCat);
-    if (activeSize) {
-      products = products.filter(p => {
-        const variant = p.variants?.find(v => v.size === activeSize);
-        if (!variant) return false;
-        const inv = p.inventory?.find(i => i.variant_id === variant.id);
-        return (inv?.quantity ?? 0) > 0;
-      });
-    }
-    if (inStockOnly) {
-      products = products.filter(p => p.inventory?.some(i => i.quantity > 0));
-    }
-    switch (activeSort) {
-      case 'price-asc':  return [...products].sort((a, b) => a.price - b.price);
-      case 'price-desc': return [...products].sort((a, b) => b.price - a.price);
-      case 'newest':     return [...products].sort((a, b) => b.created_at.localeCompare(a.created_at));
-      default:
-        // Use homepage_sort_order when showing homepage_featured products,
-        // otherwise use collection_sort_order
-        if (activeCat === 'all' && hasHomepageFeatured && !activeSize && !inStockOnly) {
-          return [...products].sort((a, b) => (a.homepage_sort_order ?? 9999) - (b.homepage_sort_order ?? 9999));
-        }
-        return [...products].sort((a, b) => (a.collection_sort_order ?? 9999) - (b.collection_sort_order ?? 9999));
-    }
-  }, [allProducts, activeCat, activeSort, activeSize, inStockOnly]);
-
-  const activeCount = (activeCat !== 'all' ? 1 : 0) + (activeSize ? 1 : 0) + (inStockOnly ? 1 : 0);
-  const clearAll = () => { setActiveCat('all'); setActiveSize(''); setInStockOnly(false); setActiveSort('default'); };
+  const isCurated = curatedProducts.length > 0;
 
   return (
-    <div className="sg-section" id="all-products">
+    <div className="sg-section" id="our-picks">
       <div className="sh-row">
         <div className="sh-left">
-          <span className="sh-eyebrow">Full Collection</span>
-          <h2 className="sh-title">All Products</h2>
+          <span className="sh-eyebrow">{isCurated ? 'Our Picks' : 'Collection'}</span>
+          <h2 className="sh-title">{isCurated ? 'Featured' : 'All Products'}</h2>
         </div>
-        {activeCount > 0 && (
-          <button className="sh-view-all" onClick={clearAll} style={{ color: 'var(--blush)' }}>
-            Clear filters ({activeCount}) ✕
-          </button>
-        )}
+        <button className="sh-view-all" onClick={openFullCollection}>
+          View All →
+        </button>
       </div>
 
-      <div className="sg-filter-bar">
-        <div className="sg-filter-group">
-          <button className={`sg-filter-pill${activeCat === 'all' ? ' active' : ''}`} onClick={() => setActiveCat('all')}>
-            All
-          </button>
-          {cats.map(c => (
-            <button key={c.id} className={`sg-filter-pill${activeCat === c.id ? ' active' : ''}`}
-              onClick={() => setActiveCat(activeCat === c.id ? 'all' : c.id)}>
-              {c.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="sg-filter-group">
-          {SIZES.map(s => (
-            <button key={s} className={`sg-filter-pill sg-filter-pill--size${activeSize === s ? ' active' : ''}`}
-              onClick={() => setActiveSize(activeSize === s ? '' : s as SizeFilter)}>
-              {s}
-            </button>
-          ))}
-        </div>
-
-        <div className="sg-filter-right">
-          <button className={`sg-filter-pill${inStockOnly ? ' active' : ''}`} onClick={() => setInStockOnly(p => !p)}>
-            In Stock
-          </button>
-          <select className="sg-sort-select" value={activeSort} onChange={e => setActiveSort(e.target.value as SortKey)}>
-            {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
-      </div>
-
-      <div className="sg-results-count">
-        {loading && allProducts.length === 0
-          ? 'Loading products…'
-          : (() => {
-              const hasHomepageFeatured = allProducts.filter(p => p.is_active).some(p => p.homepage_featured);
-              const isHomepageCurated = activeCat === 'all' && activeSort === 'default' && hasHomepageFeatured && !activeSize && !inStockOnly;
-              return `${filtered.length} product${filtered.length !== 1 ? 's' : ''}${isHomepageCurated ? ' (curated)' : activeCount > 0 ? ' matching filters' : ''}`;
-            })()
-        }
-      </div>
-
-      {!loading && filtered.length === 0 && allProducts.length > 0 ? (
-        <div className="sg-empty">
-          <p>No products match your filters.</p>
-          <button onClick={clearAll}>Clear all filters</button>
-        </div>
-      ) : loading && allProducts.length === 0 ? (
+      {loading && allProducts.length === 0 ? (
         <div className="sg-grid-2col">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="pc-card pc-card--skeleton">
@@ -268,16 +164,44 @@ function AllProductsGrid() {
         </div>
       ) : (
         <div className="sg-grid-2col">
-          {filtered.map((p, i) => <ProductCard key={p.id} product={p} priority={i < 4} />)}
+          {displayProducts.map((p, i) => <ProductCard key={p.id} product={p} priority={i < 4} />)}
         </div>
       )}
+
+      {/* View full collection CTA */}
+      <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+        <button
+          onClick={openFullCollection}
+          className="sh-view-all"
+          style={{
+            fontSize: '0.8rem',
+            letterSpacing: '0.12em',
+            padding: '0.75rem 2rem',
+            border: '1px solid var(--white)',
+            borderRadius: '2px',
+            background: 'transparent',
+            color: 'var(--white)',
+            cursor: 'pointer',
+            transition: 'background 0.2s, color 0.2s',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'var(--white)';
+            (e.currentTarget as HTMLButtonElement).style.color = 'var(--black)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+            (e.currentTarget as HTMLButtonElement).style.color = 'var(--white)';
+          }}
+        >
+          EXPLORE FULL COLLECTION
+        </button>
+      </div>
     </div>
   );
 }
 
 export default function ShopGrid() {
   const { products, load, getByIds } = useProductsStore();
-  const { openCategoryOverlay } = useUIStore();
   const { categories } = useProductsStore();
   const cats = categories.length > 0 ? categories : CATEGORIES;
 
@@ -295,17 +219,12 @@ export default function ShopGrid() {
     ? topSellersById
     : products.filter(p => p.is_active && p.is_featured).slice(0, 4);
 
-  const oc = (id: string) => {
-    const cat = cats.find(c => c.id === id);
-    if (cat) openCategoryOverlay(cat);
-  };
-
   return (
     <div className="sg-root" id="shop">
 
       {/* ── NEW ARRIVALS ── */}
       <div className="sg-section">
-        <SectionHeader title="New Arrivals" catId="cat-1" label="SS25" />
+        <SectionHeader title="New Arrivals" label="SS25" />
         <div className="sg-grid-2col">
           {displayNewArrivals.map((p, i) => <ProductCard key={p.id} product={p} priority={i < 2} />)}
         </div>
@@ -322,30 +241,6 @@ export default function ShopGrid() {
         </div>
       </div>
 
-      {/* ── SHOP BY CATEGORY ── */}
-      <div className="sg-section">
-        <div className="sh-row">
-          <div className="sh-left">
-            <span className="sh-eyebrow">Collections</span>
-            <h2 className="sh-title">Shop By Category</h2>
-          </div>
-        </div>
-        <div className="sg-cat-strip">
-          {cats.map(cat => (
-            <button key={cat.id} className="sg-cat-pill" onClick={() => oc(cat.id)}>
-              <div className="sg-cat-pill-img">
-                {cat.image_url ? (
-                  <Image src={cat.image_url} alt={cat.name} fill sizes="48px" style={{ objectFit: 'cover' }} />
-                ) : (
-                  <div className="sg-cat-pill-placeholder">RE</div>
-                )}
-              </div>
-              <span className="sg-cat-pill-name">{cat.name}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* ── TOP SELLERS ── */}
       <div className="sg-section" id="top-sellers">
         <SectionHeader title="Top Sellers" useFullCollection label="Most Loved" />
@@ -354,8 +249,8 @@ export default function ShopGrid() {
         </div>
       </div>
 
-      {/* ── ALL PRODUCTS with sort/filter ── */}
-      <AllProductsGrid />
+      {/* ── HOMEPAGE CURATED GRID (admin-selected, no filters) ── */}
+      <HomepageCuratedGrid />
 
       {/* ── TRUST STRIP ── */}
       <div className="sg-trust-strip">
