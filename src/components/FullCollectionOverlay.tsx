@@ -386,9 +386,6 @@ function FCCard({ product, index, bg, onView, onQuickAdd, onWishlist, isWishlist
         );
       })()}
 
-      {/* Index number */}
-      <div className="fc-card-num">{String(index + 1).padStart(2, '0')}</div>
-
       {/* Badge */}
       {product.badge && (
         <div className="fc-card-badge" style={{
