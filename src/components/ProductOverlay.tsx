@@ -141,57 +141,60 @@ function SizeRecommendation({ category }: { category: string }) {
 
 function RelatedProducts({ product, onOpen }: { product: import('@/types').Product; onOpen: (p: import('@/types').Product) => void }) {
   const { products: allProducts } = useProductsStore();
-  const related = allProducts
-    .filter(p => p.id !== product.id && p.is_active && (
-      p.category_id === product.category_id ||
-      (p.badge && p.badge === product.badge)
-    ))
-    .slice(0, 4);
+
+  // Same category first, then same badge, deduplicated
+  const sameCat = allProducts.filter(p => p.id !== product.id && p.is_active && p.category_id === product.category_id);
+  const sameBadge = allProducts.filter(p => p.id !== product.id && p.is_active && p.badge && p.badge === product.badge && p.category_id !== product.category_id);
+  const related = [...sameCat, ...sameBadge].slice(0, 10);
 
   if (related.length === 0) return null;
 
   return (
-    <div style={{ padding:'24px 20px 0', borderTop:'1px solid rgba(255,255,255,0.06)' }}>
-      <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.3em', textTransform:'uppercase', color:'rgba(255,255,255,0.3)', marginBottom:16 }}>
-        You May Also Like
+    <div className="pv-related">
+      <div className="pv-related-header">
+        <span className="pv-related-eyebrow">From this collection</span>
+        <h4 className="pv-related-title">You May Also Like</h4>
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:10 }}>
-        {related.map(p => {
+
+      {/* Horizontal scroll strip — snaps card by card */}
+      <div className="pv-related-strip">
+        {related.map((p, i) => {
           const rImgs = getProductImages(p);
-          const avgRating = null; // reviews loaded live per product
           return (
-            <button key={p.id} onClick={() => onOpen(p)}
-              style={{ background:'none', border:'1px solid rgba(255,255,255,0.07)', cursor:'pointer', textAlign:'left', padding:0, overflow:'hidden', transition:'border-color 0.2s', WebkitTapHighlightColor:'transparent' } as React.CSSProperties}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
+            <button
+              key={p.id}
+              className="pv-related-card"
+              onClick={() => onOpen(p)}
             >
-              {/* Image */}
-              <div style={{ width:'100%', aspectRatio:'3/4', background:'linear-gradient(135deg,#111,#1c1c1c)', overflow:'hidden', position:'relative' }}>
+              <div className="pv-related-img">
                 {rImgs.primary ? (
-                  <Image src={rImgs.primary} alt={p.name} fill sizes="150px" style={{ objectFit:'cover' }} />
+                  <Image
+                    src={rImgs.primary}
+                    alt={p.name}
+                    fill
+                    sizes="(max-width:768px) 42vw, 18vw"
+                    style={{ objectFit: 'cover', objectPosition: 'center top' }}
+                    loading={i < 3 ? 'eager' : 'lazy'}
+                  />
                 ) : (
-                  <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    <span style={{ fontFamily:'var(--font-display)', fontSize:22, color:'rgba(255,255,255,0.08)', letterSpacing:'0.1em' }}>
-                      {getProductInitials(p)}
-                    </span>
+                  <div className="pv-related-placeholder">
+                    <span>{getProductInitials(p)}</span>
                   </div>
                 )}
                 {p.badge && (
-                  <span style={{ position:'absolute', top:8, left:8, fontSize:8, fontWeight:700, letterSpacing:'0.2em', textTransform:'uppercase', padding:'3px 7px', background:'rgba(0,0,0,0.75)', color:'var(--sage)', border:'1px solid rgba(195,206,148,0.3)' }}>
-                    {p.badge}
+                  <span className="pv-related-badge">{p.badge}</span>
+                )}
+                {p.original_price && (
+                  <span className="pv-related-sale">
+                    -{Math.round((1 - p.price / p.original_price) * 100)}%
                   </span>
                 )}
               </div>
-              {/* Info */}
-              <div style={{ padding:'10px 12px' }}>
-                <div style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.85)', marginBottom:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                  {p.name}
-                </div>
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:6 }}>
-                  <span style={{ fontFamily:'var(--font-display)', fontSize:14, letterSpacing:'0.04em', color:'rgba(255,255,255,0.7)' }}>
-                    {formatPrice(p.price)}
-                  </span>
-                  {avgRating && <Stars rating={avgRating} size={10} />}
+              <div className="pv-related-info">
+                <div className="pv-related-name">{p.name}</div>
+                <div className="pv-related-price">
+                  <strong>{formatPrice(p.price)}</strong>
+                  {p.original_price && <del>{formatPrice(p.original_price)}</del>}
                 </div>
               </div>
             </button>
