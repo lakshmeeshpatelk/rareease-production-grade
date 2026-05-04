@@ -155,8 +155,11 @@ export default function CategoryOverlay() {
           {/* Row 2: Controls — Category switcher | Size filters | Sort */}
           <div className="co-controls-row">
 
+            {/* ── Top sub-row: Category + Sort ── */}
+            <div className="co-controls-top">
+
             {/* ── Category switcher dropdown ── */}
-            <div ref={catDropRef} style={{ position: 'relative' }}>
+            <div ref={catDropRef} style={{ position: 'relative', flex: 1 }}>
               <button
                 onClick={() => {
                 if (!catOpen && catDropRef.current) {
@@ -184,12 +187,12 @@ export default function CategoryOverlay() {
               <AnimatePresence>
                 {catOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: -6 }}
+                    initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
+                    exit={{ opacity: 0, y: 6 }}
                     transition={{ duration: 0.15 }}
                     className="co-dropdown co-cat-dropdown"
-                    style={{ position: 'fixed', top: catDropPos.top, left: catDropPos.left, right: 'auto', zIndex: 9999 }}
+                    style={{ zIndex: 9999 }}
                   >
                     <div className="co-dropdown-header">Browse Categories</div>
                     {CATEGORIES.map(c => {
@@ -215,27 +218,7 @@ export default function CategoryOverlay() {
               </AnimatePresence>
             </div>
 
-            {/* ── Divider ── */}
-            <div className="co-divider" />
-
-            {/* ── Size filters ── */}
-            <div className="co-sizes">
-              {SIZES.map(size => {
-                const val = size === 'All' ? 'all' : size;
-                const isActive = activeSize === val;
-                return (
-                  <button
-                    key={size}
-                    onClick={() => setActiveSize(val)}
-                    className={`co-size-btn${isActive ? ' co-size-btn--active' : ''}`}
-                  >
-                    {size}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* ── Divider ── */}
+            {/* ── Divider (desktop only) ── */}
             <div className="co-divider" />
 
             {/* ── Sort dropdown ── */}
@@ -265,12 +248,12 @@ export default function CategoryOverlay() {
               <AnimatePresence>
                 {sortOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: -6 }}
+                    initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
+                    exit={{ opacity: 0, y: 6 }}
                     transition={{ duration: 0.15 }}
                     className="co-dropdown co-sort-dropdown"
-                    style={{ position: 'fixed', top: sortDropPos.top, right: sortDropPos.right, left: 'auto', zIndex: 9999 }}
+                    style={{ zIndex: 9999 }}
                   >
                     {SORT_OPTIONS.map(opt => (
                       <button
@@ -286,7 +269,31 @@ export default function CategoryOverlay() {
                 )}
               </AnimatePresence>
             </div>
-          </div>
+
+            </div>{/* end co-controls-top */}
+
+            {/* ── Bottom sub-row: Size filters (scrollable) ── */}
+            <div className="co-controls-sizes">
+              {/* ── Divider (desktop only) ── */}
+              <div className="co-divider" />
+              <div className="co-sizes">
+              {SIZES.map(size => {
+                const val = size === 'All' ? 'all' : size;
+                const isActive = activeSize === val;
+                return (
+                  <button
+                    key={size}
+                    onClick={() => setActiveSize(val)}
+                    className={`co-size-btn${isActive ? ' co-size-btn--active' : ''}`}
+                  >
+                    {size}
+                  </button>
+                );
+              })}
+              </div>
+              {/* ── Divider (desktop only) ── */}
+              <div className="co-divider" />
+            </div>
         </div>
 
         {/* ══════════════════════════════════════════
