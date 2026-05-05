@@ -10,6 +10,7 @@ import { useProductsStore } from '@/store/productsStore';
 import { formatPrice } from '@/lib/utils';
 import { getProductImages, getProductInitials } from '@/lib/productImage';
 import { CATEGORIES } from '@/lib/categories';
+import RecommendedProducts from '@/components/RecommendedProducts';
 import type { Product } from '@/types';
 
 const SIZES = ['S', 'M', 'L', 'XL', 'XXL'] as const;
@@ -231,32 +232,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
           </div>
         </div>
 
-        {/* Related products */}
-        {related.length > 0 && (
-          <section className="pp-related">
-            <div className="pp-related-title">You May Also Like</div>
-            <div className="pp-related-grid">
-              {related.map(p => {
-                const rImgs = getProductImages(p);
-                return (
-                  <Link key={p.id} href={`/products/${p.slug}`} className="pp-related-card">
-                    <div className="pp-related-img" style={{ position: 'relative' }}>
-                      {rImgs.primary ? (
-                        <Image src={rImgs.primary} alt={p.name} fill sizes="(max-width:768px) 50vw, 200px" style={{ objectFit: 'cover' }} />
-                      ) : (
-                        <div className="pp-related-placeholder">
-                          {getProductInitials(p)}
-                        </div>
-                      )}
-                    </div>
-                    <div className="pp-related-name">{p.name}</div>
-                    <div className="pp-related-price">{formatPrice(p.price)}</div>
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
-        )}
+        {/* Recommended products */}
+        <RecommendedProducts products={related} />
 
         {/* Back to shop */}
         <div className="pp-back">

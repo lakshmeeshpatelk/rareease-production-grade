@@ -5051,67 +5051,7 @@ select.checkout-field-input option {
 }
 .pp-overlay-link:hover { color: rgba(255,255,255,0.6); }
 
-/* Related */
-.pp-related {
-  max-width: 1200px;
-  margin: 40px auto 0;
-  padding: 0 16px 40px;
-  /* Prevent any child from blowing out the container on mobile */
-  overflow: hidden;
-  width: 100%;
-  box-sizing: border-box;
-}
-.pp-related-title {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.25em;
-  text-transform: uppercase; color: rgba(255,255,255,0.3);
-  margin-bottom: 20px; padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.pp-related-grid {
-  display: grid;
-  /* Mobile-first: 2 columns */
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  width: 100%;
-  /* Prevent grid blowout — critical fix for overflow on Android/iOS */
-  min-width: 0;
-}
-/* Critical: min-width:0 prevents grid items from overflowing their cell */
-.pp-related-card {
-  text-decoration: none;
-  color: inherit;
-  display: block;
-  min-width: 0;
-  width: 100%;
-  overflow: hidden;
-}
-.pp-related-img {
-  aspect-ratio: 3/4;
-  overflow: hidden;
-  background: rgba(255,255,255,0.03);
-  margin-bottom: 8px;
-  width: 100%;
-  /* Prevent image from escaping its cell */
-  position: relative;
-}
-.pp-related-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
-.pp-related-card:hover .pp-related-img img { transform: scale(1.04); }
-.pp-related-placeholder {
-  width: 100%; height: 100%;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-display); font-size: 40px;
-  color: rgba(255,255,255,0.06);
-}
-.pp-related-name {
-  font-size: 11px;
-  color: rgba(255,255,255,0.7);
-  margin-bottom: 4px;
-  /* Prevent long names from overflowing the card */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.pp-related-price { font-family: var(--font-display); font-size: 16px; letter-spacing: 0.04em; }
+/* Related — replaced by RecommendedProducts component (rec-* classes) */
 
 .pp-back {
   text-align: center; padding: 32px 24px;
@@ -5174,7 +5114,7 @@ select.checkout-field-input option {
   /* pp-layout is already 1-col by default (mobile-first above) */
   .pp-details { padding: 0; }
   .pp-title { font-size: 32px; }
-  /* pp-related-grid is already 2-col by default (mobile-first above) */
+  /* rec-* handles recommended products — see bottom of file */
   .pp-col-grid { grid-template-columns: repeat(2, 1fr); padding: 16px; }
   .pp-cat-badge { font-size: 60px; }
   .pp-cat-title { font-size: 36px; }
@@ -5182,14 +5122,7 @@ select.checkout-field-input option {
   .pp-breadcrumb { display: none; }
 }
 
-/* Desktop: bump related grid to 4 columns */
-@media (min-width: 769px) {
-  .pp-related { padding: 0 24px 40px; }
-  .pp-related-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
-  .pp-related-name { font-size: 12px; }
-  .pp-related-price { font-size: 18px; }
-  .pp-related-img { margin-bottom: 10px; }
-}
+/* Desktop: bump related grid to 4 columns — handled by rec-* CSS below */
 
 /* ══════════════════════════════════════════════════════════════════
    MOBILE FIXES — iOS Safari & Android
@@ -5354,20 +5287,11 @@ select.checkout-field-input option {
 @media (max-width: 360px) {
   /* Tiny screens (iPhone SE, Galaxy A-series small) */
   .pp-layout { padding: 10px; gap: 16px; }
-  .pp-related { padding: 0 10px 32px; }
-  .pp-related-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    /* Explicit width ensures no overflow at 320px */
-    width: 100%;
-  }
-  .pp-related-card { min-width: 0; }
+  /* pp-related* — handled by rec-* component CSS */
   .pp-col-grid { padding: 8px; gap: 2px; }
   .pp-title { font-size: 26px; }
   .pp-cat-title { font-size: 28px; }
   .pp-cat-badge { font-size: 44px; }
-  .pp-related-name { font-size: 10px; }
-  .pp-related-price { font-size: 14px; }
 }
 
 /* ── Utility keyframes ─────────────────────────────────────────── */
@@ -5794,4 +5718,325 @@ select.checkout-field-input option {
 }
 .auth-input-wrap:focus-within {
   border-color: rgba(255,255,255,0.28);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RECOMMENDED PRODUCTS  (rec-*)
+   Component: src/components/RecommendedProducts.tsx
+   Strategy  : horizontal scroll carousel on mobile → CSS grid on desktop
+   Tested on : 320px (SE), 375px (iPhone 14), 390px (Pro), 428px (Max),
+               768px (iPad), 1024px, 1280px, 1440px
+══════════════════════════════════════════════════════════════════ */
+
+/* ── Section wrapper ─────────────────────────────────────────── */
+.rec-section {
+  /* Full-bleed on mobile so the scroll track reaches the edges */
+  width: 100%;
+  box-sizing: border-box;
+  margin: 56px 0 0;
+  padding-bottom: 56px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── Header row ──────────────────────────────────────────────── */
+.rec-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 28px 16px 20px;
+  gap: 12px;
+}
+
+.rec-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rec-eyebrow {
+  font-family: var(--font-body);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.rec-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--white);
+  margin: 0;
+  line-height: 1;
+}
+
+.rec-see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.3);
+  text-decoration: none;
+  transition: color 0.2s;
+  flex-shrink: 0;
+  padding-bottom: 2px; /* optical alignment with title baseline */
+}
+.rec-see-all:hover { color: var(--white); }
+.rec-see-all svg { transition: transform 0.2s; }
+.rec-see-all:hover svg { transform: translateX(3px); }
+
+/* ── Scroll track — MOBILE: horizontal carousel ──────────────── */
+.rec-track {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  /*
+   * Critical: padding-inline gives the first & last cards breathing room
+   * without hiding them behind the viewport edge.
+   * padding-right is larger so the last card's right edge is visible
+   * (signals there's more to scroll).
+   */
+  padding: 4px 16px 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* Smooth momentum scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+  /* Snap each card into place */
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  /* Hide scrollbar — touch users don't need it */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.rec-track::-webkit-scrollbar { display: none; }
+
+/* ── Card — fixed width on mobile so partial next card is visible ─ */
+.rec-card {
+  /* 44 vw → shows ~2.2 cards, teasing the next one */
+  flex: 0 0 44vw;
+  min-width: 0;
+  max-width: 200px;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  scroll-snap-align: start;
+  /* Subtle press feedback for touch */
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+.rec-card:active {
+  opacity: 0.78;
+  transform: scale(0.98);
+}
+
+/* ── Image wrapper ───────────────────────────────────────────── */
+.rec-img-wrap {
+  /*
+   * 3:4 portrait ratio — standard for apparel.
+   * Using aspect-ratio + position:relative so Next.js fill images work.
+   */
+  aspect-ratio: 3 / 4;
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.03);
+  /* Prevent any child from escaping the card boundary */
+  isolation: isolate;
+}
+
+/* Next.js fills the wrapper cleanly */
+.rec-img-wrap img {
+  object-fit: cover;
+  transition: transform 0.42s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform; /* promote to GPU layer — no layout shift */
+  draggable: false;
+}
+.rec-card:hover .rec-img-wrap img { transform: scale(1.06); }
+
+/* ── Placeholder when no image ───────────────────────────────── */
+.rec-img-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 36px;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.06);
+  user-select: none;
+}
+
+/* ── Discount badge ──────────────────────────────────────────── */
+.rec-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 2;
+  background: #e63946;
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 3px 8px;
+  text-transform: uppercase;
+  pointer-events: none;
+  line-height: 1.4;
+}
+
+/* Alternate label badge style (New, Best Seller, etc.) */
+.rec-badge--label {
+  background: rgba(0, 0, 0, 0.65);
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ── Hover CTA overlay ───────────────────────────────────────── */
+.rec-hover-cta {
+  position: absolute;
+  inset: auto 0 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  pointer-events: none;
+}
+.rec-hover-cta span {
+  font-family: var(--font-body);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--white);
+}
+/* Only show on hover (desktop) — touch gets :active feedback instead */
+@media (hover: hover) {
+  .rec-card:hover .rec-hover-cta {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Card info block ─────────────────────────────────────────── */
+.rec-info {
+  padding: 10px 2px 0;
+  min-width: 0; /* prevent text from overflowing the flex item */
+}
+
+.rec-name {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 5px;
+  /* Graceful truncation for long names */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.rec-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.rec-price {
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  color: var(--white);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.rec-orig {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.25);
+  text-decoration: line-through;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+/* ── Tablet: show ~3 cards in carousel ───────────────────────── */
+@media (min-width: 500px) and (max-width: 768px) {
+  .rec-card {
+    flex: 0 0 calc((100vw - 16px * 2 - 10px * 2) / 3 + 10px);
+    /* ~3 cards, last one slightly revealed */
+    flex: 0 0 30vw;
+    max-width: 220px;
+  }
+  .rec-title { font-size: 26px; }
+}
+
+/* ── Desktop: switch carousel → 4-column CSS grid ────────────── */
+@media (min-width: 769px) {
+  .rec-section {
+    max-width: 1200px;
+    margin: 56px auto 0;
+    padding: 0 24px 64px;
+  }
+
+  .rec-header {
+    padding: 32px 0 24px;
+  }
+
+  .rec-title { font-size: 28px; }
+
+  /* Override flex carousel → proper grid */
+  .rec-track {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    padding: 0;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+
+  /* Cards fill their grid cell */
+  .rec-card {
+    flex: none;
+    max-width: none;
+    width: 100%;
+  }
+
+  .rec-name { font-size: 12px; }
+  .rec-price { font-size: 18px; }
+  .rec-orig { font-size: 11px; }
+  .rec-badge { font-size: 9px; padding: 4px 8px; }
+}
+
+/* ── Very small screens (320px iPhone SE) ────────────────────── */
+@media (max-width: 360px) {
+  .rec-header { padding: 20px 12px 16px; }
+  .rec-track { gap: 8px; padding: 4px 12px 12px; }
+  .rec-card {
+    /* On 320px, show 2 full cards */
+    flex: 0 0 calc(50vw - 16px);
+    max-width: 160px;
+  }
+  .rec-title { font-size: 20px; }
+  .rec-name { font-size: 10px; }
+  .rec-price { font-size: 14px; }
+  .rec-badge { font-size: 8px; padding: 2px 6px; bottom: 6px; left: 6px; }
 }
