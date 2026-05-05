@@ -223,10 +223,16 @@ export default function CheckoutOverlay() {
     const base = {
       ref: fieldRef(key),
       defaultValue: '',
-      onBlur: () => {
-        // Clear the error for this field when the user leaves it
+      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        // Ensure ref value is always in sync (fixes autofill not triggering blur)
+        if (domRefs.current[key]) {
+          (domRefs.current[key] as HTMLInputElement).value = e.target.value;
+        }
         setFieldErrors(prev => ({ ...prev, [key]: undefined }));
-        // Trigger pincode lookup when pincode field is blurred
+        if (key === 'pincode') setPincodeValue(e.target.value);
+      },
+      onBlur: () => {
+        setFieldErrors(prev => ({ ...prev, [key]: undefined }));
         if (key === 'pincode') {
           const val = (domRefs.current.pincode as HTMLInputElement)?.value ?? '';
           setPincodeValue(val);
