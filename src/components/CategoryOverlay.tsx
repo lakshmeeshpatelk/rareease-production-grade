@@ -329,7 +329,7 @@ export default function CategoryOverlay() {
                     {(() => {
                       const imgs = getProductImages(product);
                       return imgs.primary ? (
-                        <div className="co-card-bg" style={{ position: 'relative', overflow: 'hidden' }}>
+                        <div className="co-card-bg">
                           <Image
                             src={imgs.primary}
                             alt={product.name}
