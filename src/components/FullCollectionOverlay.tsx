@@ -206,6 +206,7 @@ export default function FullCollectionOverlay() {
                     className="fc-dropdown fc-sort-dropdown"
                     style={{ zIndex: 9999 }}
                   >
+                    <div className="fc-dropdown-header">Sort by</div>
                     {SORT_OPTIONS.map(opt => (
                       <button
                         key={opt.value}
