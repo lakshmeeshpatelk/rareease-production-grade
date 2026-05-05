@@ -1131,7 +1131,7 @@ input, textarea { -webkit-appearance: none; border-radius: 0; }
   .checkout-body { display: grid; grid-template-columns: 1fr 380px; min-height: calc(100dvh - 60px); }
   .checkout-form-side { padding: 40px 48px 60px; border-right: 1px solid rgba(255,255,255,0.06); overflow-y: auto; }
   .checkout-order-side { padding: 40px; border-top: none; background: rgba(255,255,255,0.01); position: sticky; top: 0; height: fit-content; max-height: 100dvh; overflow-y: auto; }
-  .checkout-field-row { grid-template-columns: 1fr 1fr; gap: 16px; }
+  .checkout-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
   /* Account/Notif panels */
   .account-panel, .notif-panel { width: 380px; z-index: 600; }
@@ -2607,6 +2607,11 @@ input, textarea { -webkit-appearance: none; border-radius: 0; }
 select.checkout-field-input {
   cursor: pointer;
   background: #0d0d0d;
+  color: var(--white);
+}
+select.checkout-field-input option {
+  background: #0d0d0d;
+  color: var(--white);
 }
 .checkout-section-title {
   font-family: var(--font-display);
@@ -5218,6 +5223,7 @@ select.checkout-field-input {
     overflow-x: hidden;
   }
   .checkout-field-row {
+    display: grid;
     grid-template-columns: 1fr;
     gap: 12px;
   }

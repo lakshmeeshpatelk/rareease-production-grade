@@ -362,49 +362,55 @@ export default function CheckoutOverlay() {
         mode: (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? 'sandbox') as 'sandbox' | 'production',
       });
 
-      modalOpened = true; // signal: callbacks will reset isProcessing
+      modalOpened = true; // signal: finally block won't reset isProcessing
 
-      // Cashfree drop-in checkout modal
-      cashfree.checkout({
+      // Cashfree v3 SDK — checkout() returns a Promise that resolves when the modal closes
+      const result = await cashfree.checkout({
         paymentSessionId,
         redirectTarget: '_modal',
-        onSuccess: async () => {
-          try {
-            const verifyRes = await fetch('/api/payments/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ orderId }),
-            });
-            const verifyData = await verifyRes.json() as { paymentStatus?: string };
-            if (verifyRes.ok && verifyData.paymentStatus === 'paid') {
-              clearCart();
-              setSuccessOrder({ id: orderId, method: 'online' });
-            } else {
-              addToast('✕', 'Payment verification failed. Contact support with order ID: ' + orderId);
-            }
-          } catch {
-            addToast('✕', 'Could not verify payment. Contact support with order ID: ' + orderId);
-          } finally {
-            setIsProcessing(false);
-          }
-        },
-        onFailure: () => {
-          addToast('✕', 'Payment failed. Please try again.');
-          setIsProcessing(false);
-        },
-        onClose: () => {
-          setIsProcessing(false);
-        },
       });
 
-      // isProcessing is reset inside the callbacks above — don't reset here
+      // result.paymentDetails is present on success/failure inside the modal
+      // result.redirect is true if the SDK is doing a page redirect (non-modal fallback)
+      if (result?.redirect) {
+        // SDK is redirecting to return_url — nothing to do here, page will navigate
+        return;
+      }
+
+      const status = result?.paymentDetails?.payment_status;
+
+      if (status === 'SUCCESS') {
+        // Optimistically verify server-side to confirm webhook processed
+        try {
+          const verifyRes = await fetch('/api/payments/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId }),
+          });
+          const verifyData = await verifyRes.json() as { paymentStatus?: string };
+          if (verifyRes.ok && verifyData.paymentStatus === 'paid') {
+            clearCart();
+            setSuccessOrder({ id: orderId, method: 'online' });
+          } else {
+            addToast('✕', 'Payment verification failed. Contact support with order ID: ' + orderId);
+          }
+        } catch {
+          addToast('✕', 'Could not verify payment. Contact support with order ID: ' + orderId);
+        }
+      } else if (status === 'FAILED') {
+        addToast('✕', 'Payment failed. Please try again.');
+      } else {
+        // User closed modal without completing payment — silent, no toast
+      }
+
+      setIsProcessing(false);
       return;
     } catch (err) {
       console.error('[payment]', err);
       const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
       addToast('✕', msg);
     } finally {
-      // Only reset here if the modal never opened — otherwise the callbacks handle it
+      // Reset isProcessing if modal never opened (error before checkout() call)
       if (!modalOpened) setIsProcessing(false);
     }
   };
@@ -490,7 +496,7 @@ export default function CheckoutOverlay() {
                     <div className="form-section-num">1</div>
                     <div className="form-section-title">Contact Info</div>
                   </div>
-                  <div className="checkout-field-row">
+                  <div className="checkout-field-row" style={{ display: 'grid' }}>
                     <FormField label="Full Name" required error={fieldErrors.name}>
                       <StableInput placeholder="Aryan Kumar" className="checkout-field-input" autoComplete="name" autoCorrect="off" spellCheck={false} {...field('name')} />
                     </FormField>
@@ -515,7 +521,7 @@ export default function CheckoutOverlay() {
                   <FormField label="Address Line 2" error={fieldErrors.line2}>
                     <StableInput placeholder="Landmark, Area (optional)" className="checkout-field-input" autoComplete="address-line2" {...field('line2')} />
                   </FormField>
-                  <div className="checkout-field-row">
+                  <div className="checkout-field-row" style={{ display: 'grid' }}>
                     <FormField label="City" required error={fieldErrors.city}>
                       <StableInput placeholder="Bengaluru" className="checkout-field-input" autoComplete="address-level2" autoCorrect="off" {...field('city')} />
                     </FormField>
@@ -549,8 +555,8 @@ export default function CheckoutOverlay() {
                   </div>
                   <FormField label="State" required error={fieldErrors.state}>
                     <StableSelect className="checkout-field-input" {...field('state')}>
-                      <option value="">Select state</option>
-                      {STATES.map(s => <option key={s} value={s} style={{ background: '#111' }}>{s}</option>)}
+                      <option value="" style={{ background: '#0d0d0d', color: '#f5f5f5' }}>Select state</option>
+                      {STATES.map(s => <option key={s} value={s} style={{ background: '#0d0d0d', color: '#f5f5f5' }}>{s}</option>)}
                     </StableSelect>
                   </FormField>
 
