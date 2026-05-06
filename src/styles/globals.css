@@ -1128,10 +1128,7 @@ input, textarea { -webkit-appearance: none; border-radius: 0; }
   .search-results-grid { grid-template-columns: repeat(3, 1fr); }
 
   /* Checkout */
-  .checkout-body { display: grid; grid-template-columns: 1fr 380px; min-height: calc(100dvh - 60px); }
-  .checkout-form-side { padding: 40px 48px 60px; border-right: 1px solid rgba(255,255,255,0.06); overflow-y: auto; }
-  .checkout-order-side { padding: 40px; border-top: none; background: rgba(255,255,255,0.01); position: sticky; top: 0; height: fit-content; max-height: 100dvh; overflow-y: auto; }
-  .checkout-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  /* checkout layout — handled by co-* component CSS */
 
   /* Account/Notif panels */
   .account-panel, .notif-panel { width: 380px; z-index: 600; }
@@ -1818,66 +1815,7 @@ input, textarea { -webkit-appearance: none; border-radius: 0; }
 ═══════════════════════════════════ */
 /* checkout styles defined in panel system below */
 
-/* ── ACTUAL CHECKOUT OVERLAY CSS (was missing — root cause of keyboard dismiss) ──
- *
- * .checkout-overlay had no position:fixed, no overflow definition.
- * On mobile, when the keyboard opened, the browser scrolled the document,
- * the layout shifted under the overlay, and iOS interpreted that as
- * "the focused input left the viewport" and dismissed the keyboard.
- * This had nothing to do with React controlled vs uncontrolled inputs.
- */
-.checkout-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 900;
-  background: var(--black);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
 
-.checkout-header {
-  flex-shrink: 0;
-  padding: 16px 24px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.checkout-header-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.checkout-back-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  color: rgba(255,255,255,0.45);
-  font-size: 13px;
-  cursor: pointer;
-  padding: 0;
-  letter-spacing: 0.02em;
-}
-
-.checkout-back-btn:hover { color: var(--white); }
-
-.checkout-steps {
-  display: flex;
-  align-items: center;
-}
-
-.checkout-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
 
 /* ══════════════════════════════════════════════════════════════════
    LOGO — SVG, MOBILE FIRST
@@ -2516,213 +2454,526 @@ input, textarea { -webkit-appearance: none; border-radius: 0; }
   color: var(--white);
 }
 
-.checkout-step-item {
+/* ══════════════════════════════════════════════════════════════════
+   CHECKOUT OVERLAY  (co-*)
+   Mobile-first. Sticky pay bar on mobile. Split panel on desktop.
+   Tested: 320px / 375px / 390px / 428px / 768px / 1024px / 1440px
+══════════════════════════════════════════════════════════════════ */
+
+/* ── Root overlay ────────────────────────────────────────────── */
+.co-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: var(--black);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* traps scroll inside children */
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.co-header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 20px;
+  height: 56px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  background: var(--black);
+  /* Stack above scrollable content */
+  position: relative;
+  z-index: 2;
 }
-.checkout-step-num {
+
+.co-logo {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.12em;
+  color: var(--white);
+  flex-shrink: 0;
+}
+
+.co-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition: color 0.2s, background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.co-close:hover { color: var(--white); background: rgba(255,255,255,0.05); }
+
+/* Steps */
+.co-steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+  justify-content: center;
+}
+.co-step-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.co-step-line {
+  width: 20px;
+  height: 1px;
+  background: rgba(255,255,255,0.12);
+  margin: 0 4px;
+}
+.co-step-num {
   width: 22px; height: 22px;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.18);
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-body);
   font-size: 9px; font-weight: 700;
   color: rgba(255,255,255,0.3);
   flex-shrink: 0;
+  transition: all 0.2s;
 }
-.checkout-step-num--done { background: var(--sage); border-color: var(--sage); color: var(--black); }
-.checkout-step-num--active { border-color: var(--white); color: var(--white); }
-.checkout-step-label {
+.co-step-num--done   { background: var(--sage); border-color: var(--sage); color: var(--black); }
+.co-step-num--active { border-color: var(--white); color: var(--white); }
+.co-step-label {
   font-family: var(--font-body);
   font-size: 9px; font-weight: 500;
-  letter-spacing: 0.2em; text-transform: uppercase;
-  color: rgba(255,255,255,0.3);
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: rgba(255,255,255,0.25);
 }
-.checkout-step-label--active { color: var(--white); }
-.checkout-step-divider {
-  width: 24px; height: 1px;
-  background: rgba(255,255,255,0.12);
+.co-step-label--active { color: var(--white); }
+
+/* ── Mobile order summary strip ──────────────────────────────── */
+.co-strip-wrap {
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.02);
 }
 
-/* Form section header */
-.form-section-header {
+.co-strip { width: 100%; }
+
+.co-strip-toggle {
+  width: 100%;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   gap: 12px;
-  margin-bottom: 18px;
-  padding-bottom: 14px;
+}
+.co-strip-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.co-strip-chevron {
+  color: rgba(255,255,255,0.3);
+  transition: transform 0.22s ease;
+  flex-shrink: 0;
+}
+.co-strip-chevron--open { transform: rotate(180deg); }
+.co-strip-text {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.04em;
+}
+.co-strip-count {
+  color: rgba(255,255,255,0.25);
+  margin-left: 3px;
+}
+.co-strip-total {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  color: var(--white);
+  flex-shrink: 0;
+}
+.co-strip-body {
+  overflow: hidden;
+}
+.co-strip-inner {
+  padding: 0 20px 16px;
+}
+
+/* ── Layout: form + sidebar ──────────────────────────────────── */
+.co-layout {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* ── Form side ───────────────────────────────────────────────── */
+.co-form-side {
+  padding: 24px 20px 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Spacer so content isn't obscured by sticky bar on mobile */
+.co-form-bottom-spacer {
+  height: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ── Scroll area (success screen) ────────────────────────────── */
+.co-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Section ─────────────────────────────────────────────────── */
+.co-section { margin-bottom: 8px; }
+
+.co-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
-.form-section-num {
-  width: 26px; height: 26px;
+.co-section-num {
+  width: 24px; height: 24px;
   border-radius: 50%;
-  background: var(--gray2);
+  background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.1);
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: 13px;
   color: var(--sage);
   flex-shrink: 0;
 }
-.form-section-title {
+.co-section-title {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 16px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--white);
+  margin: 0;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   CHECKOUT OVERLAY — MISSING/IMPROVED CLASSES
-══════════════════════════════════════════════════════════════════ */
-.checkout-field {
+.co-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.05);
+  margin: 20px 0;
+}
+
+/* ── 2-column grid row ───────────────────────────────────────── */
+.co-row-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+/* ── Form field ──────────────────────────────────────────────── */
+.co-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
   margin-bottom: 14px;
 }
-.checkout-field label {
+.co-field-label {
   font-family: var(--font-body);
   font-size: 9px;
   font-weight: 600;
-  letter-spacing: 0.25em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--mid-gray);
+  color: rgba(255,255,255,0.35);
 }
-.checkout-field-input {
+.co-field-req { color: var(--sage); margin-left: 3px; }
+.co-field-error {
+  font-size: 10px;
+  color: #e63946;
+  letter-spacing: 0.03em;
+  margin: 0;
+}
+
+/* ── Input ───────────────────────────────────────────────────── */
+.co-input {
   width: 100%;
+  box-sizing: border-box;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.1);
   color: var(--white);
   font-family: var(--font-body);
-  font-size: max(16px, 14px); /* ≥16px prevents iOS auto-zoom on focus */
+  /* ≥16px prevents iOS Safari auto-zoom on focus */
+  font-size: max(16px, 14px);
   padding: 13px 14px;
   outline: none;
   transition: border-color 0.2s;
   -webkit-appearance: none;
+  border-radius: 0;
 }
-.checkout-field-input::placeholder { color: rgba(255,255,255,0.2); }
-.checkout-field-input:focus { border-color: rgba(255,255,255,0.4); }
-select.checkout-field-input {
+.co-input::placeholder { color: rgba(255,255,255,0.2); }
+.co-input:focus        { border-color: rgba(255,255,255,0.38); background: rgba(255,255,255,0.06); }
+.co-input--padright    { padding-right: 38px; }
+.co-input--select {
   cursor: pointer;
   background: #0d0d0d;
-  color: var(--white);
 }
-select.checkout-field-input option {
-  background: #0d0d0d;
-  color: var(--white);
+.co-input--select option { background: #0d0d0d; color: var(--white); }
+
+/* Pincode wrapper */
+.co-pincode-wrap { position: relative; }
+.co-pin-icon {
+  position: absolute;
+  right: 12px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  pointer-events: none;
 }
-.checkout-section-title {
-  font-family: var(--font-display);
-  font-size: 18px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--white);
+.co-pin-icon--loading { color: rgba(255,255,255,0.3); }
+.co-pin-icon--valid   { color: var(--sage); }
+.co-pin-icon--invalid { color: #e63946; }
+.co-pin-hint {
+  font-size: 10px;
+  color: var(--sage);
+  margin: 4px 0 0;
+  letter-spacing: 0.04em;
+}
+
+/* ── Payment method cards ─────────────────────────────────────── */
+.co-pay-methods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
   margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-.checkout-header-logo {
-  font-family: var(--font-display);
-  font-size: 22px;
+.co-pay-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px 14px 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  /* min-height ensures both cards are the same height regardless of content */
+  min-height: 96px;
+}
+.co-pay-card:active { opacity: 0.8; }
+.co-pay-card--active {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.35);
+}
+.co-pay-card--off {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.co-pay-card-icon { font-size: 20px; line-height: 1; }
+.co-pay-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+.co-pay-card-title {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.7);
+}
+.co-pay-card--active .co-pay-card-title { color: var(--white); }
+.co-pay-card-sub {
+  font-size: 9px;
+  color: rgba(255,255,255,0.28);
+  letter-spacing: 0.03em;
+  line-height: 1.5;
+}
+
+/* Radio dot */
+.co-radio {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.2);
+  transition: all 0.18s;
+}
+.co-radio--on {
+  border-color: var(--white);
+  background: var(--white);
+  box-shadow: inset 0 0 0 3px var(--black);
+}
+
+/* COD notice */
+.co-cod-notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  background: rgba(244,162,90,0.06);
+  border: 1px solid rgba(244,162,90,0.18);
+  margin-bottom: 4px;
+}
+.co-cod-notice p {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.7;
+  margin: 0;
+}
+.co-cod-notice strong { color: rgba(244,162,90,0.85); }
+
+/* ── Coupon ───────────────────────────────────────────────────── */
+.co-coupon-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.co-coupon-input {
+  flex: 1;
+  text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--white);
+  font-size: max(16px, 12px) !important;
 }
-.checkout-order-title {
-  font-family: var(--font-display);
-  font-size: 16px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--white);
-  margin-bottom: 16px;
-}
-.checkout-order-item {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-.checkout-order-thumb {
-  width: 56px;
-  height: 70px;
-  flex-shrink: 0;
-  background: #111;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-.checkout-order-item-name {
-  font-family: var(--font-display);
-  font-size: 14px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--white);
-  margin-bottom: 3px;
-}
-.checkout-order-item-meta {
+.co-coupon-btn {
+  height: auto;
+  padding: 0 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.6);
   font-family: var(--font-body);
   font-size: 10px;
-  letter-spacing: 0.15em;
+  font-weight: 700;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--mid-gray);
-}
-.checkout-order-item-price {
-  font-family: var(--font-display);
-  font-size: 16px;
-  color: var(--white);
-  margin-left: auto;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.2s, border-color 0.2s;
   flex-shrink: 0;
+  min-width: 72px;
 }
-.checkout-order-total {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+.co-coupon-btn:hover:not(:disabled) { color: var(--white); border-color: rgba(255,255,255,0.28); }
+.co-coupon-btn:disabled { opacity: 0.5; cursor: wait; }
+.co-coupon-error {
+  font-size: 10px;
+  color: #e63946;
+  margin: 6px 0 0;
+  letter-spacing: 0.03em;
 }
-.checkout-order-total-row {
+.co-coupon-applied {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  font-family: var(--font-body);
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.co-coupon-applied-title {
   font-size: 12px;
-  color: var(--mid-gray);
+  font-weight: 600;
+  color: var(--sage);
   letter-spacing: 0.06em;
-  margin-bottom: 8px;
+  margin: 0 0 3px;
 }
-.checkout-order-total-final {
+.co-coupon-applied-sub {
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+  margin: 0;
+}
+.co-coupon-remove {
+  background: none; border: none;
+  color: rgba(255,255,255,0.28);
+  font-size: 10px; letter-spacing: 0.1em;
+  text-decoration: underline; cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+.co-coupon-remove:hover { color: #e63946; }
+
+/* ── Security notice ─────────────────────────────────────────── */
+.co-secure-notice {
   display: flex;
-  justify-content: space-between;
-  font-family: var(--font-display);
-  font-size: 22px;
-  letter-spacing: 0.06em;
-  color: var(--white);
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255,255,255,0.1);
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 20px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
 }
-.checkout-pay-btn {
+.co-secure-notice p {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+  line-height: 1.7;
+  margin: 0;
+}
+.co-secure-notice strong { color: rgba(255,255,255,0.6); font-weight: 500; }
+
+/* ── Pay button ───────────────────────────────────────────────── */
+.co-pay-btn {
   width: 100%;
-  height: 54px;
+  height: 52px;
   background: var(--white);
   color: var(--black);
   border: none;
   font-family: var(--font-body);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.25em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background 0.25s;
-  margin-top: 20px;
+  transition: background 0.22s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
 }
-.checkout-pay-btn:hover { background: var(--sage); }
-.checkout-pay-btn:disabled { opacity: 0.6; cursor: wait; }
-.checkout-trust-row {
+.co-pay-btn:hover:not(:disabled) { background: var(--sage); }
+.co-pay-btn:disabled { opacity: 0.55; cursor: wait; }
+
+/* Desktop form button: shown on desktop, hidden on mobile (sticky bar handles it) */
+.co-pay-btn--form {
+  display: none;
+  margin-top: 20px;
+}
+/* Sidebar button: only on desktop */
+.co-pay-btn--sidebar { margin-top: 20px; }
+
+/* Spinner inside pay button */
+.co-spinner-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.co-spinner {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(0,0,0,0.2);
+  border-top-color: var(--black);
+  border-radius: 50%;
+  animation: co-spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.co-spinner--dark {
+  border-color: rgba(255,255,255,0.2);
+  border-top-color: var(--black);
+}
+@keyframes co-spin { to { transform: rotate(360deg); } }
+
+/* ── Trust row ───────────────────────────────────────────────── */
+.co-trust-row {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2732,18 +2983,375 @@ select.checkout-field-input option {
   border-top: 1px solid rgba(255,255,255,0.05);
   flex-wrap: wrap;
 }
-.checkout-trust-item {
+.co-trust-item {
   display: flex;
   align-items: center;
   gap: 5px;
   font-family: var(--font-body);
   font-size: 9px;
   font-weight: 400;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.22);
+}
+
+.co-terms {
+  margin-top: 16px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.2);
+  line-height: 1.8;
+  text-align: center;
+}
+.co-terms-link {
+  background: none; border: none;
+  color: rgba(255,255,255,0.32);
+  font-size: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+.co-terms-link:hover { color: rgba(255,255,255,0.6); }
+
+/* ── Order sidebar (desktop only) ────────────────────────────── */
+.co-order-side { display: none; }
+
+/* ── Shared order item styles ────────────────────────────────── */
+.co-order-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.co-order-thumb {
+  width: 52px; height: 64px;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.co-order-initials {
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: rgba(255,255,255,0.12);
+  letter-spacing: 0.04em;
+}
+.co-order-info { flex: 1; min-width: 0; }
+.co-order-name {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--white);
+  margin: 0 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.co-order-meta {
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  margin: 0;
+}
+.co-order-price {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--white);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Order totals */
+.co-order-totals {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.co-order-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+.co-order-row--disc { color: var(--sage); }
+.co-free { color: var(--sage); }
+.co-order-final {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  color: var(--white);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.co-order-card {
+  padding: 28px 24px;
+}
+.co-order-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--white);
+  margin: 0 0 16px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.co-order-count {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--sage);
+  letter-spacing: 0.08em;
+}
+.co-delivery-box {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.co-delivery-label {
+  font-size: 9px;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: rgba(255,255,255,0.25);
+  margin: 0 0 4px;
 }
-.checkout-trust-icon { font-size: 13px; }
+.co-delivery-val {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  margin: 0;
+  line-height: 1.6;
+}
+.co-delivery-val strong { color: var(--white); }
+
+/* ── Mobile sticky pay bar ───────────────────────────────────── */
+.co-sticky-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  padding-bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) + 12px));
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.co-sticky-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.co-sticky-items {
+  font-family: var(--font-body);
+  font-size: 9px;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.co-sticky-total {
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 0.04em;
+  color: var(--white);
+  line-height: 1;
+}
+.co-sticky-btn {
+  flex: 1;
+  height: 50px;
+  background: var(--white);
+  color: var(--black);
+  border: none;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.co-sticky-btn:hover:not(:disabled) { background: var(--sage); }
+.co-sticky-btn:disabled { opacity: 0.55; cursor: wait; }
+.co-sticky-btn:active { transform: scale(0.98); }
+
+/* ── Success screen ───────────────────────────────────────────── */
+.co-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80dvh;
+  padding: 40px 24px;
+  text-align: center;
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+.co-success-icon {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  margin-bottom: 24px;
+}
+.co-success-title {
+  font-family: var(--font-display);
+  font-size: 32px;
+  letter-spacing: 0.06em;
+  color: var(--white);
+  margin: 0 0 10px;
+}
+.co-success-sub {
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.8;
+  margin: 0 0 24px;
+}
+.co-success-id { color: var(--sage); }
+.co-success-steps {
+  width: 100%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+.co-success-steps-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.25);
+  margin: 0 0 14px;
+}
+.co-success-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.co-success-step:last-child { margin-bottom: 0; }
+.co-success-step--done    { font-size: 12px; color: var(--sage); line-height: 1.5; }
+.co-success-step--pending { font-size: 12px; color: rgba(255,255,255,0.4); line-height: 1.5; }
+.co-success-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+.co-btn-primary {
+  flex: 1; min-width: 140px; height: 48px;
+  background: var(--white); color: var(--black);
+  border: none;
+  font-family: var(--font-body); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer;
+  transition: background 0.2s;
+}
+.co-btn-primary:hover { background: var(--sage); }
+.co-btn-ghost {
+  flex: 1; min-width: 140px; height: 48px;
+  background: none; color: rgba(255,255,255,0.45);
+  border: 1px solid rgba(255,255,255,0.12);
+  font-family: var(--font-body); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.co-btn-ghost:hover { color: var(--white); border-color: rgba(255,255,255,0.3); }
+
+/* ══════════════════════════════════════════════════════════════════
+   BREAKPOINTS
+══════════════════════════════════════════════════════════════════ */
+
+/* Tablet — show 2-col input rows */
+@media (min-width: 500px) {
+  .co-row-2 { grid-template-columns: 1fr 1fr; gap: 12px; }
+}
+
+/* Desktop — split panel */
+@media (min-width: 769px) {
+  .co-header { padding: 0 40px; height: 60px; }
+  .co-logo   { font-size: 20px; }
+
+  /* Strip is mobile-only */
+  .co-strip-wrap { display: none; }
+
+  /* Horizontal two-column grid */
+  .co-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    overflow: visible; /* parent scrolls */
+    min-height: 0;
+  }
+
+  .co-form-side {
+    padding: 40px 48px 60px;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    height: calc(100dvh - 60px);
+    box-sizing: border-box;
+  }
+
+  /* Desktop: spacer not needed */
+  .co-form-bottom-spacer { display: none; }
+
+  /* Desktop: form CTA button is visible, sidebar button is primary */
+  .co-pay-btn--form { display: flex; }
+
+  /* Sidebar */
+  .co-order-side {
+    display: block;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    height: calc(100dvh - 60px);
+    background: rgba(255,255,255,0.01);
+    border-left: 1px solid rgba(255,255,255,0.06);
+    position: sticky;
+    top: 0;
+  }
+
+  /* Mobile sticky bar hidden on desktop */
+  .co-sticky-bar { display: none; }
+
+  .co-section-title { font-size: 18px; }
+  .co-strip-total   { font-size: 20px; }
+}
+
+/* Small mobile (≤360px) */
+@media (max-width: 360px) {
+  .co-header         { padding: 0 14px; height: 52px; }
+  .co-logo           { font-size: 15px; }
+  .co-form-side      { padding: 20px 14px 12px; }
+  .co-strip-toggle   { padding: 10px 14px; }
+  .co-pay-methods    { grid-template-columns: 1fr; }
+  .co-sticky-bar     { padding: 10px 14px; padding-bottom: max(10px, calc(env(safe-area-inset-bottom, 0px) + 10px)); }
+  .co-sticky-total   { font-size: 18px; }
+  .co-sticky-btn     { height: 46px; font-size: 10px; }
+  .co-step-label     { display: none; } /* too cramped at 320px */
+  .co-success-title  { font-size: 26px; }
+}
+
 
 /* ══════════════════════════════════════════════════════════════════
    STATIC PAGE OVERLAYS — TIGHTENED UP
@@ -5226,41 +5834,7 @@ select.checkout-field-input option {
   .checkout-mobile-sticky {
     padding-bottom: max(16px, calc(env(safe-area-inset-bottom, 0px) + 16px));
   }
-  /* Checkout — mobile layout: single column, no overflow */
-  .checkout-overlay {
-    width: 100vw;
-    max-width: 100vw;
-    overflow-x: hidden;
-  }
-  .checkout-body {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    overflow-x: hidden;
-  }
-  .checkout-form-side {
-    width: 100%;
-    padding: 24px 20px 32px;
-    border-right: none;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    overflow-x: hidden;
-  }
-  .checkout-order-side {
-    width: 100%;
-    padding: 24px 20px 32px;
-    position: static;
-    height: auto;
-    max-height: none;
-    overflow-x: hidden;
-  }
-  .checkout-field-row {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .checkout-header {
-    padding: 14px 20px;
-  }
+  /* checkout mobile overrides — handled by co-* component CSS */
   /* ProductOverlay bottom action bar */
   .pv-sticky-bar {
     padding-bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) + 12px));
@@ -5730,12 +6304,18 @@ select.checkout-field-input option {
 
 /* ── Section wrapper ─────────────────────────────────────────── */
 .rec-section {
-  /* Full-bleed on mobile so the scroll track reaches the edges */
   width: 100%;
   box-sizing: border-box;
   margin: 56px 0 0;
   padding-bottom: 56px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+  /*
+   * CRITICAL: body has overflow-x:hidden which acts as a clipping context
+   * and kills child overflow-x:auto scroll on iOS/Android.
+   * overflow:hidden here creates a NEW independent scroll context so
+   * rec-track can scroll horizontally without being clipped by body.
+   */
+  overflow: hidden;
 }
 
 /* ── Header row ──────────────────────────────────────────────── */
@@ -5796,21 +6376,18 @@ select.checkout-field-input option {
   display: flex;
   flex-direction: row;
   gap: 10px;
-  /*
-   * Critical: padding-inline gives the first & last cards breathing room
-   * without hiding them behind the viewport edge.
-   * padding-right is larger so the last card's right edge is visible
-   * (signals there's more to scroll).
-   */
   padding: 4px 16px 16px;
   overflow-x: auto;
   overflow-y: hidden;
   /* Smooth momentum scrolling on iOS */
   -webkit-overflow-scrolling: touch;
+  /* CRITICAL: tells iOS this element owns horizontal pan gestures.
+     Without this, iOS intercepts the swipe for page scroll instead. */
+  touch-action: pan-x;
   /* Snap each card into place */
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
-  /* Hide scrollbar — touch users don't need it */
+  /* Hide scrollbar */
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
