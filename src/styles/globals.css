@@ -6309,13 +6309,7 @@ input, textarea { -webkit-appearance: none; border-radius: 0; }
   margin: 56px 0 0;
   padding-bottom: 56px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  /*
-   * CRITICAL: body has overflow-x:hidden which acts as a clipping context
-   * and kills child overflow-x:auto scroll on iOS/Android.
-   * overflow:hidden here creates a NEW independent scroll context so
-   * rec-track can scroll horizontally without being clipped by body.
-   */
-  overflow: hidden;
+  /* No overflow tricks needed — grid layout, no horizontal scroll */
 }
 
 /* ── Header row ──────────────────────────────────────────────── */
@@ -6373,36 +6367,21 @@ input, textarea { -webkit-appearance: none; border-radius: 0; }
 
 /* ── Scroll track — MOBILE: horizontal carousel ──────────────── */
 .rec-track {
-  display: flex;
-  flex-direction: row;
+  /* 2-column grid on mobile — every card visible, no horizontal scroll mess */
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   padding: 4px 16px 16px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  /* Smooth momentum scrolling on iOS */
-  -webkit-overflow-scrolling: touch;
-  /* CRITICAL: tells iOS this element owns horizontal pan gestures.
-     Without this, iOS intercepts the swipe for page scroll instead. */
-  touch-action: pan-x;
-  /* Snap each card into place */
-  scroll-snap-type: x mandatory;
-  overscroll-behavior-x: contain;
-  /* Hide scrollbar */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  overflow: visible;
 }
-.rec-track::-webkit-scrollbar { display: none; }
 
-/* ── Card — fixed width on mobile so partial next card is visible ─ */
+/* ── Card — fills its grid cell cleanly ── */
 .rec-card {
-  /* 44 vw → shows ~2.2 cards, teasing the next one */
-  flex: 0 0 44vw;
   min-width: 0;
-  max-width: 200px;
+  width: 100%;
   text-decoration: none;
   color: inherit;
   display: block;
-  scroll-snap-align: start;
   /* Subtle press feedback for touch */
   transition: opacity 0.15s ease, transform 0.15s ease;
   -webkit-tap-highlight-color: transparent;
@@ -6556,17 +6535,17 @@ input, textarea { -webkit-appearance: none; border-radius: 0; }
 }
 
 /* ── Tablet: show ~3 cards in carousel ───────────────────────── */
+/* ── Wider phones / small tablets (500–768px): 3-column grid ── */
 @media (min-width: 500px) and (max-width: 768px) {
-  .rec-card {
-    flex: 0 0 calc((100vw - 16px * 2 - 10px * 2) / 3 + 10px);
-    /* ~3 cards, last one slightly revealed */
-    flex: 0 0 30vw;
-    max-width: 220px;
+  .rec-track {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding: 4px 20px 16px;
   }
   .rec-title { font-size: 26px; }
 }
 
-/* ── Desktop: switch carousel → 4-column CSS grid ────────────── */
+/* ── Desktop: 4-column grid ────────────────────────────────── */
 @media (min-width: 769px) {
   .rec-section {
     max-width: 1200px;
@@ -6580,20 +6559,13 @@ input, textarea { -webkit-appearance: none; border-radius: 0; }
 
   .rec-title { font-size: 28px; }
 
-  /* Override flex carousel → proper grid */
   .rec-track {
-    display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
     padding: 0;
-    overflow: visible;
-    scroll-snap-type: none;
   }
 
-  /* Cards fill their grid cell */
   .rec-card {
-    flex: none;
-    max-width: none;
     width: 100%;
   }
 
@@ -6603,14 +6575,12 @@ input, textarea { -webkit-appearance: none; border-radius: 0; }
   .rec-badge { font-size: 9px; padding: 4px 8px; }
 }
 
-/* ── Very small screens (320px iPhone SE) ────────────────────── */
+/* ── Very small screens (≤360px iPhone SE) ──────────────────── */
 @media (max-width: 360px) {
   .rec-header { padding: 20px 12px 16px; }
-  .rec-track { gap: 8px; padding: 4px 12px 12px; }
-  .rec-card {
-    /* On 320px, show 2 full cards */
-    flex: 0 0 calc(50vw - 16px);
-    max-width: 160px;
+  .rec-track {
+    gap: 8px;
+    padding: 4px 12px 12px;
   }
   .rec-title { font-size: 20px; }
   .rec-name { font-size: 10px; }
