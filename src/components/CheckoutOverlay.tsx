@@ -306,7 +306,7 @@ export default function CheckoutOverlay() {
       await loadCashfreeScript();
       const cashfree = new window.Cashfree({ mode: (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? 'sandbox') as 'sandbox' | 'production' });
       modalOpened = true;
-      const result = await cashfree.checkout({ paymentSessionId, redirectTarget: '_modal' });
+      const result = await cashfree.checkout({ paymentSessionId, redirectTarget: '_self' });
       if (result?.redirect) return;
       const status = result?.paymentDetails?.payment_status;
       if (status === 'SUCCESS') {
