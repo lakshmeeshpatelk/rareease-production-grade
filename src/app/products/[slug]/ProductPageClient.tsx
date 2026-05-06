@@ -6,11 +6,9 @@ import Link from 'next/link';
 import { useCartStore } from '@/store/cartStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWishlistStore } from '@/store/wishlistStore';
-import { useProductsStore } from '@/store/productsStore';
 import { formatPrice } from '@/lib/utils';
 import { getProductImages, getProductInitials } from '@/lib/productImage';
 import { CATEGORIES } from '@/lib/categories';
-import RecommendedProducts from '@/components/RecommendedProducts';
 import type { Product } from '@/types';
 
 const SIZES = ['S', 'M', 'L', 'XL', 'XXL'] as const;
@@ -23,7 +21,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const { addItem, openCart } = useCartStore();
   const { addToast, openProductOverlay } = useUIStore();
   const { toggleWithSync, has } = useWishlistStore();
-  const { products: allProducts } = useProductsStore();
 
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [imgIdx, setImgIdx] = useState(0);
@@ -32,11 +29,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const images   = imgs.all;
   const category = CATEGORIES.find(c => c.id === product.category_id);
   const isWishlisted = has(product.id);
-
-  // Related products — same category, different product, from store with fallback
-  const related = (allProducts.length > 0 ? allProducts : [])
-    .filter(p => p.category_id === product.category_id && p.id !== product.id && p.is_active)
-    .slice(0, 4);
 
   const handleAddToCart = () => {
     if (!selectedSize) { addToast('⚠', 'Please select a size'); return; }
@@ -231,9 +223,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
             </button>
           </div>
         </div>
-
-        {/* Recommended products */}
-        <RecommendedProducts products={related} />
 
         {/* Back to shop */}
         <div className="pp-back">
