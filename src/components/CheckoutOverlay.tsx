@@ -289,7 +289,6 @@ export default function CheckoutOverlay() {
       return;
     }
 
-    let modalOpened = false;
     try {
       const orderRes = await fetch('/api/payments/create', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -305,9 +304,16 @@ export default function CheckoutOverlay() {
 
       await loadCashfreeScript();
       const cashfree = new window.Cashfree({ mode: (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? 'sandbox') as 'sandbox' | 'production' });
-      modalOpened = true;
-      const result = await cashfree.checkout({ paymentSessionId, redirectTarget: '_self' });
+
+      // Use '_modal' so payment opens as an in-page overlay.
+      // '_self' caused a full-page redirect that could stall in sandbox and had
+      // no recovery path — isProcessing stayed true forever if the redirect
+      // didn't fire or the user hit back.
+      const result = await cashfree.checkout({ paymentSessionId, redirectTarget: '_modal' });
+
+      // '_modal' never redirects, but guard anyway so the type-checker is happy.
       if (result?.redirect) return;
+
       const status = result?.paymentDetails?.payment_status;
       if (status === 'SUCCESS') {
         try {
@@ -316,11 +322,19 @@ export default function CheckoutOverlay() {
           if (vr.ok && vd.paymentStatus === 'paid') { clearCart(); setSuccessOrder({ id: orderId, method: 'online' }); }
           else addToast('✕', 'Payment verification failed. Contact support with order ID: ' + orderId);
         } catch { addToast('✕', 'Could not verify payment. Contact support with order ID: ' + orderId); }
-      } else if (status === 'FAILED') { addToast('✕', 'Payment failed. Please try again.'); }
-      setIsProcessing(false);
+      } else if (status === 'FAILED') {
+        addToast('✕', result?.error?.message ?? 'Payment failed. Please try again.');
+      } else if (result?.error) {
+        // User dismissed the modal or payment was cancelled
+        addToast('✕', result.error.message || 'Payment was cancelled.');
+      }
     } catch (err) {
       addToast('✕', err instanceof Error ? err.message : 'Something went wrong. Please try again.');
-    } finally { if (!modalOpened) setIsProcessing(false); }
+    } finally {
+      // Always reset — previously guarded by `if (!modalOpened)` which meant any
+      // error after the Cashfree instance was created left the button stuck forever.
+      setIsProcessing(false);
+    }
   };
 
   const handleClose = () => {
