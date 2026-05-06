@@ -44,14 +44,20 @@ const FormField = React.memo(function FormField({ label, required, error, childr
   );
 });
 
-const StableInput = React.memo(function StableInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} />;
-});
-const StableSelect = React.memo(function StableSelect(
-  props: React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }
-) {
-  return <select {...props}>{props.children}</select>;
-});
+const StableInput = React.memo(
+  React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
+    function StableInput(props, ref) {
+      return <input ref={ref} {...props} />;
+    }
+  )
+);
+const StableSelect = React.memo(
+  React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }>(
+    function StableSelect({ children, ...props }, ref) {
+      return <select ref={ref} {...props}>{children}</select>;
+    }
+  )
+);
 
 function OrderSuccess({ orderId, method, name, onClose, onTrack }: {
   orderId: string; method: PayMethod; name: string; onClose: () => void; onTrack: () => void;
