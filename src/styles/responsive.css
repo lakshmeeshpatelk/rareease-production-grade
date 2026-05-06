@@ -236,8 +236,8 @@ html, body { overscroll-behavior-x: none; }
   .pv-img-area { flex: 0 0 55vw; min-height: 0; }
   .pv-sheet { padding: 16px 16px 0; overflow-y: visible; }
   .pv-top-actions { flex-direction: column; gap: 8px; }
-  .pv-related-strip { grid-template-columns: repeat(2, 1fr); padding: 0 16px 4px; }
-  .pv-related-header { padding: 0 16px 14px; }
+  .pv-related-strip { grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 0 4px; }
+  .pv-related-header { padding: 0 0 14px; }
 
   /* ── sh- section headers: smaller title ── */
   .sh-title { font-size: clamp(18px, 5vw, 26px); }
@@ -941,7 +941,7 @@ html, body { overscroll-behavior-x: none; }
   padding-top: 24px;
   margin-top: 4px;
 }
-.pv-related-header { padding: 0 20px 14px; }
+.pv-related-header { padding: 0 0 14px; }
 .pv-related-eyebrow {
   display: block;
   font-size: 8px;
@@ -964,8 +964,8 @@ html, body { overscroll-behavior-x: none; }
 .pv-related-strip {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 2px;
-  padding: 0 20px 4px;
+  gap: 10px;
+  padding: 0 0 4px;
 }
 
 .pv-related-card {
