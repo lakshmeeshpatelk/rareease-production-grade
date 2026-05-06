@@ -253,7 +253,8 @@ export async function POST(req: NextRequest) {
 
   } catch (err) {
     await captureException(err, { route: 'payments/create' });
-    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error("[payments/create] error:", err);
+    const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? JSON.stringify(err) ?? "Internal server error";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
