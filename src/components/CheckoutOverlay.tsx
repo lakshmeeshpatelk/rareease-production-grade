@@ -645,7 +645,14 @@ async function loadCashfreeScript(): Promise<void> {
   if (_cashfreeScriptPromise) return _cashfreeScriptPromise;
   _cashfreeScriptPromise = new Promise((resolve, reject) => {
     const existing = document.querySelector('script[src="https://sdk.cashfree.com/js/v3/cashfree.js"]');
-    if (existing) { existing.addEventListener('load', () => resolve()); return; }
+    if (existing) {
+      if (typeof window.Cashfree !== 'undefined') { resolve(); return; }
+      const poll = setInterval(() => {
+        if (typeof window.Cashfree !== 'undefined') { clearInterval(poll); resolve(); }
+      }, 50);
+      setTimeout(() => { clearInterval(poll); reject(new Error('Cashfree SDK load timeout')); }, 10000);
+      return;
+    }
     const script = document.createElement('script');
     script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
     script.onload  = () => resolve();
