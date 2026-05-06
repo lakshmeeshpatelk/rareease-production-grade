@@ -84,7 +84,7 @@ function warnIfRedisMissing(isProd: boolean) {
 
 // ── Middleware ───────────────────────────────────────────────────────────────
 export function middleware(request: NextRequest) {
-  const isProd = process.env.NODE_ENV === 'production';
+  const isProd = process.env.CASHFREE_ENV === 'production';
 
   warnIfRedisMissing(isProd);
 
