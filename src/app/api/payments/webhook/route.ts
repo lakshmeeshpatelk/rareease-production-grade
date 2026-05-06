@@ -122,8 +122,9 @@ export async function POST(req: NextRequest) {
         }).then(null, console.error);
       }
 
-      // Push to Shiprocket for Prepaid orders
-      if (isShiprocketConfigured && orderItems && orderItems.length > 0) {
+      // Push to Shiprocket for Prepaid orders — skipped in sandbox/test mode
+      const isLiveMode = (process.env.CASHFREE_ENV ?? 'sandbox') === 'production';
+      if (isShiprocketConfigured && isLiveMode && orderItems && orderItems.length > 0) {
         const addr = existing.shipping_address as Record<string, string>;
         // Fetch product names
         const productIds = [...new Set(orderItems.map(i => i.product_id as string))];
@@ -200,5 +201,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }
-
-

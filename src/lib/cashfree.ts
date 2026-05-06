@@ -58,9 +58,15 @@ export async function createCashfreeOrder(
     throw new Error('Cashfree credentials are not configured (CASHFREE_APP_ID / CASHFREE_SECRET_KEY)');
   }
 
-  const expiresAt =
-    input.expiresAt ??
-    new Date(Date.now() + 30 * 60 * 1000).toISOString().replace(/\.\d{3}Z$/, '+05:30');
+  // Use 1 hour from now in proper IST (UTC+5:30). We add the offset to the UTC ms
+  // so the wall-clock digits actually represent IST before appending +05:30.
+  const expiresAt = (() => {
+    if (input.expiresAt) return input.expiresAt;
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+    return new Date(Date.now() + 60 * 60 * 1000 + IST_OFFSET_MS)
+      .toISOString()
+      .replace(/\.\d{3}Z$/, '+05:30');
+  })();
 
   const body = {
     order_id:     input.orderId,

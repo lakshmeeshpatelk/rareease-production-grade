@@ -216,8 +216,9 @@ export async function POST(req: NextRequest) {
       if (couponCode) await supabase.rpc('increment_coupon_usage', { p_code: couponCode });
       await supabase.from('orders').update({ status: 'processing' }).eq('id', orderId);
 
-      // Push to Shiprocket (non-blocking)
-      if (isShiprocketConfigured) {
+      // Push to Shiprocket (non-blocking) — skipped in sandbox/test mode
+      const isLiveMode = (process.env.CASHFREE_ENV ?? 'sandbox') === 'production';
+      if (isShiprocketConfigured && isLiveMode) {
         pushOrderToShiprocket(orderId, shippingAddress as Record<string, string>, serverItems, total, 'COD', supabase).catch(
           err => captureException(err, { route: 'payments/create', orderId, stage: 'shiprocket' })
         );
@@ -256,5 +257,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
-
-
