@@ -792,7 +792,8 @@ export default function ProductOverlay() {
                       {qty > 0 && qty <= 3 && <span className="pv-size-low" />}
                     </button>
                   );
-                })}\n              </div>
+                })}
+              </div>
 
               {/* Notify me — shown when a size is selected and OOS */}
               {(() => {
