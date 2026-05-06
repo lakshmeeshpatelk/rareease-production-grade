@@ -9,7 +9,6 @@ import { useUIStore } from '@/store/uiStore';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { formatPrice, getInventoryForVariant } from '@/lib/utils';
-import { useProductsStore } from '@/store/productsStore';
 import { getProductImages, getProductInitials } from '@/lib/productImage';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 import { useOverlayHistory } from '@/lib/useOverlayHistory';
@@ -139,72 +138,6 @@ function SizeRecommendation({ category }: { category: string }) {
   );
 }
 
-function RelatedProducts({ product, onOpen }: { product: import('@/types').Product; onOpen: (p: import('@/types').Product) => void }) {
-  const { products: allProducts } = useProductsStore();
-
-  // Same category first, then same badge, deduplicated
-  const sameCat = allProducts.filter(p => p.id !== product.id && p.is_active && p.category_id === product.category_id);
-  const sameBadge = allProducts.filter(p => p.id !== product.id && p.is_active && p.badge && p.badge === product.badge && p.category_id !== product.category_id);
-  const related = [...sameCat, ...sameBadge].slice(0, 10);
-
-  if (related.length === 0) return null;
-
-  return (
-    <div className="pv-related">
-      <div className="pv-related-header">
-        <span className="pv-related-eyebrow">From this collection</span>
-        <h4 className="pv-related-title">You May Also Like</h4>
-      </div>
-
-      {/* Horizontal scroll strip — snaps card by card */}
-      <div className="pv-related-strip">
-        {related.map((p, i) => {
-          const rImgs = getProductImages(p);
-          return (
-            <button
-              key={p.id}
-              className="pv-related-card"
-              onClick={() => onOpen(p)}
-            >
-              <div className="pv-related-img">
-                {rImgs.primary ? (
-                  <Image
-                    src={rImgs.primary}
-                    alt={p.name}
-                    fill
-                    sizes="(max-width:768px) 42vw, 18vw"
-                    style={{ objectFit: 'cover', objectPosition: 'center top' }}
-                    loading={i < 3 ? 'eager' : 'lazy'}
-                  />
-                ) : (
-                  <div className="pv-related-placeholder">
-                    <span>{getProductInitials(p)}</span>
-                  </div>
-                )}
-                {p.badge && (
-                  <span className="pv-related-badge">{p.badge}</span>
-                )}
-                {p.original_price && (
-                  <span className="pv-related-sale">
-                    -{Math.round((1 - p.price / p.original_price) * 100)}%
-                  </span>
-                )}
-              </div>
-              <div className="pv-related-info">
-                <div className="pv-related-name">{p.name}</div>
-                <div className="pv-related-price">
-                  <strong>{formatPrice(p.price)}</strong>
-                  {p.original_price && <del>{formatPrice(p.original_price)}</del>}
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 /** Build the image slide list for a given product.
  *  Uses product_media from DB first, then placeholder slots. */
 function buildSlides(product: import('@/types').Product) {
@@ -225,8 +158,6 @@ export default function ProductOverlay() {
   const { activeProductOverlay, closeProductOverlay, openProductOverlay, addToast } = useUIStore();
   const { addItem, openCart } = useCartStore();
   const { toggleWithSync, has } = useWishlistStore();
-  const { products: allProducts } = useProductsStore();
-
   const [selectedSize, setSelectedSize] = useState('');
   const [activeImg, setActiveImg] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
@@ -792,8 +723,7 @@ export default function ProductOverlay() {
                       {qty > 0 && qty <= 3 && <span className="pv-size-low" />}
                     </button>
                   );
-                })}
-              </div>
+                })}\n              </div>
 
               {/* Notify me — shown when a size is selected and OOS */}
               {(() => {
@@ -969,9 +899,6 @@ export default function ProductOverlay() {
                 </>
               )}
             </div>
-
-            {/* ── RELATED PRODUCTS ── */}
-            <RelatedProducts product={product} onOpen={(p) => { openProductOverlay(p); }} />
 
             {/* Bottom spacer for sticky CTA */}
             <div style={{ height: 80 }} />
