@@ -47,14 +47,14 @@ function buildCSP(nonce: string, isProd: boolean): string {
         'https://js.sentry-cdn.com',
       ].join(' ');
 
-  const cashfreeSandbox = isProd ? '' : ' https://sandbox.cashfree.com';
+  const cashfreeSandbox = isProd ? '' : ' https://sandbox.cashfree.com https://*.cashfree.com';
 
   return [
     "default-src 'self'",
     `script-src ${scriptSrc}`,
     "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://images.unsplash.com",
-    `connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://api.cashfree.com${cashfreeSandbox} https://*.sentry.io https://*.upstash.io https://api.resend.com`,
-    `frame-src https://api.cashfree.com https://sdk.cashfree.com${cashfreeSandbox}`,
+    `connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://api.cashfree.com https://*.cashfree.com${cashfreeSandbox} https://*.sentry.io https://*.upstash.io https://api.resend.com`,
+    `frame-src https://api.cashfree.com https://sdk.cashfree.com https://*.cashfree.com${cashfreeSandbox}`,
     "font-src 'self' https://fonts.gstatic.com",
     // style-src: unsafe-inline is required for Tailwind CSS-in-JS utilities and Next.js
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
