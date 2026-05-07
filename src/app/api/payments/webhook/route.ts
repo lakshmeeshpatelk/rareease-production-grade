@@ -61,31 +61,29 @@ export async function POST(req: NextRequest) {
 
       if (!cfOrderId) return NextResponse.json({ received: true });
 
-      // Fetch our order (Cashfree order_id == our internal orderId)
-      const { data: existing } = await supabase
-        .from('orders')
-        .select('id, payment_status, payment_method, user_id, coupon_code, discount_amount, subtotal, shipping, total, shipping_address')
-        .eq('id', cfOrderId)
-        .single();
-
-      if (!existing) return NextResponse.json({ received: true, skipped: 'order_not_found' });
-
-      // Idempotency guard
-      if (existing.payment_status === 'paid') {
-        return NextResponse.json({ received: true, skipped: 'already_processed' });
-      }
-
-      const orderId = existing.id as string;
-
-      // Mark paid
-      await supabase
+      // Atomic idempotency guard: the UPDATE only matches when payment_status is
+      // still 'pending'. If the verify fallback (or a duplicate webhook) already
+      // flipped it to 'paid', this returns 0 rows and we exit immediately —
+      // no inventory decrement, no duplicate email, no double coupon increment.
+      const { data: claimed } = await supabase
         .from('orders')
         .update({
           payment_status:      'paid',
           status:              'processing',
           cashfree_payment_id: cfPaymentId,
         })
-        .eq('id', orderId);
+        .eq('id', cfOrderId)
+        .eq('payment_status', 'pending')   // ← atomic guard
+        .select('id, payment_method, user_id, coupon_code, discount_amount, subtotal, shipping, total, shipping_address')
+        .single();
+
+      if (!claimed) {
+        // Either order doesn't exist or was already processed by the other handler
+        return NextResponse.json({ received: true, skipped: 'already_processed_or_not_found' });
+      }
+
+      const existing = claimed;
+      const orderId  = existing.id as string;
 
       // Fetch order items
       const { data: orderItems } = await supabase

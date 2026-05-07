@@ -74,7 +74,8 @@ async function verifyOrder(orderId: string): Promise<NextResponse> {
     email_sent: boolean | null;
   }
 
-  // Fetch our order — grab full fields needed for fallback post-payment work
+  // Lightweight read to check if webhook already handled it — avoids a
+  // Cashfree round-trip on the happy path where the webhook fires first.
   const { data: orderRaw } = await supabase
     .from('orders')
     .select('id, cashfree_order_id, payment_status, status, total, subtotal, shipping, discount_amount, coupon_code, user_id, shipping_address, payment_method, email_sent')
@@ -102,18 +103,30 @@ async function verifyOrder(orderId: string): Promise<NextResponse> {
       const cfStatus = await getCashfreeOrderStatus(orderId);
       if (cfStatus.order_status === 'PAID') {
         // ── Webhook safety net ───────────────────────────────────────────────
-        // The Cashfree webhook should have already handled everything, but it
-        // can be delayed or fail. We alert Sentry so the team knows the webhook
-        // is unreliable, then perform all post-payment work here idempotently.
+        // Atomic idempotency gate: only the first handler to win this UPDATE
+        // (webhook or verify) proceeds to post-payment work. The other will get
+        // 0 rows back because payment_status is no longer 'pending', and exits.
+        const { data: claimed } = await supabase
+          .from('orders')
+          .update({ payment_status: 'paid', status: 'processing' })
+          .eq('id', orderId)
+          .eq('payment_status', 'pending')   // ← atomic guard
+          .select('id')
+          .single();
+
+        if (!claimed) {
+          // Webhook won the race and already handled everything — just report paid.
+          return NextResponse.json({
+            success:       true,
+            paymentStatus: 'paid',
+            orderStatus:   'processing',
+          });
+        }
+
         await captureException(
           new Error(`[verify] Webhook missed for order ${orderId} — running fallback post-payment work`),
           { route: 'payments/verify', orderId, severity: 'warning' }
         );
-
-        // Mark paid + processing
-        await supabase.from('orders')
-          .update({ payment_status: 'paid', status: 'processing' })
-          .eq('id', orderId);
 
         // Fetch order items
         const { data: orderItems } = await supabase
