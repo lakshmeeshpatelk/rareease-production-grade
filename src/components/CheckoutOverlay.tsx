@@ -199,6 +199,7 @@ export default function CheckoutOverlay() {
   }, [pincodeValue]);
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [successOrder, setSuccessOrder] = useState<{ id: string; method: PayMethod } | null>(null);
 
   const subtotal   = useMemo(() => total(), [items]);  // eslint-disable-line
@@ -305,10 +306,8 @@ export default function CheckoutOverlay() {
       await loadCashfreeScript();
       const cashfree = new window.Cashfree({ mode: (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? 'sandbox') as 'sandbox' | 'production' });
 
-      // Use '_modal' so payment opens as an in-page overlay.
-      // '_self' caused a full-page redirect that could stall in sandbox and had
-      // no recovery path — isProcessing stayed true forever if the redirect
-      // didn't fire or the user hit back.
+      // Hide checkout overlay so Cashfree modal isn't buried behind it
+      setIsPaymentModalOpen(true);
       const result = await cashfree.checkout({ paymentSessionId, redirectTarget: '_modal' });
 
       // '_modal' never redirects, but guard anyway so the type-checker is happy.
@@ -331,8 +330,7 @@ export default function CheckoutOverlay() {
     } catch (err) {
       addToast('✕', err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
-      // Always reset — previously guarded by `if (!modalOpened)` which meant any
-      // error after the Cashfree instance was created left the button stuck forever.
+      setIsPaymentModalOpen(false);
       setIsProcessing(false);
     }
   };
@@ -364,6 +362,7 @@ export default function CheckoutOverlay() {
           role="dialog" aria-modal="true" aria-label="Checkout"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
+          style={isPaymentModalOpen ? { opacity: 0, pointerEvents: 'none' } : undefined}
         >
           {/* HEADER */}
           <div className="co-header">
