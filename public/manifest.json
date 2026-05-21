@@ -1,0 +1,20 @@
+{
+  "name": "Rare Ease",
+  "short_name": "Rare Ease",
+  "description": "Premium Indian streetwear. Wear The Rare. Feel The Ease.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "lang": "en-IN",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["shopping", "lifestyle"],
+  "related_applications": []
+}
