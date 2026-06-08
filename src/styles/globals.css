@@ -3282,60 +3282,337 @@ input, textarea { -webkit-appearance: none; border-radius: 0; }
    BREAKPOINTS
 ══════════════════════════════════════════════════════════════════ */
 
-/* Tablet — show 2-col input rows */
+/* ── Tablet: unlock 2-col input rows ──────────────────────────── */
 @media (min-width: 500px) {
-  .co-row-2 { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .co-row-2 { grid-template-columns: 1fr 1fr; gap: 14px; }
 }
 
-/* Desktop — split panel */
+/* ══════════════════════════════════════════════════════════════════
+   DESKTOP + iPad CHECKOUT REDESIGN  (≥769px)
+   Mobile layout / sticky bar / strip unchanged below this breakpoint.
+══════════════════════════════════════════════════════════════════ */
 @media (min-width: 769px) {
-  .co-header { padding: 0 40px; height: 60px; }
-  .co-logo   { font-size: 20px; }
 
-  /* Strip is mobile-only */
-  .co-strip-wrap { display: none; }
+  /* ── Root overlay: keep full screen ─────────────────────────── */
+  .co-overlay { background: #080808; }
 
-  /* Horizontal two-column grid */
-  .co-layout {
-    display: grid;
-    grid-template-columns: 1fr 380px;
-    overflow: visible; /* parent scrolls */
-    min-height: 0;
+  /* ── Header: taller, more breathing room ─────────────────────── */
+  .co-header {
+    padding: 0 48px;
+    height: 68px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .co-logo {
+    font-size: 21px;
+    letter-spacing: 0.18em;
   }
 
+  /* Step indicator: larger, clearer */
+  .co-steps { gap: 0; }
+  .co-step-line { width: 36px; background: rgba(255,255,255,0.1); }
+  .co-step-item { gap: 8px; }
+  .co-step-num {
+    width: 30px; height: 30px;
+    font-size: 11px; font-weight: 700;
+    border-width: 1.5px;
+  }
+  .co-step-num--done   { background: var(--sage); border-color: var(--sage); color: #111; }
+  .co-step-num--active { border-color: rgba(255,255,255,0.7); color: var(--white); }
+  .co-step-label { font-size: 10px; letter-spacing: 0.22em; }
+  .co-step-label--active { color: rgba(255,255,255,0.85); }
+
+  /* ── Mobile-only strip hidden on desktop ─────────────────────── */
+  .co-strip-wrap { display: none; }
+
+  /* ── Two-column grid ─────────────────────────────────────────── */
+  .co-layout {
+    display: grid;
+    grid-template-columns: 1fr 440px;
+    overflow: visible;
+    min-height: 0;
+    align-items: start;
+  }
+
+  /* ── Form side ───────────────────────────────────────────────── */
   .co-form-side {
-    padding: 40px 48px 60px;
+    padding: 0;
     border-right: 1px solid rgba(255,255,255,0.06);
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    height: calc(100dvh - 60px);
+    height: calc(100dvh - 68px);
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
   }
 
-  /* Desktop: spacer not needed */
+  /* Intro strip above form sections */
+  .co-form-side::before {
+    content: 'Secure Checkout';
+    display: block;
+    padding: 28px 48px 0;
+    font-family: var(--font-display);
+    font-size: 28px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--white);
+  }
+
+  /* Spacer not needed on desktop */
   .co-form-bottom-spacer { display: none; }
 
-  /* Desktop: form CTA button is visible, sidebar button is primary */
-  .co-pay-btn--form { display: flex; }
+  /* ── Sections: card-style blocks ─────────────────────────────── */
+  .co-section {
+    margin: 0;
+    padding: 28px 48px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .co-section:last-of-type { border-bottom: none; }
 
-  /* Sidebar */
+  .co-section-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .co-section-num {
+    width: 30px; height: 30px;
+    font-size: 14px;
+    background: rgba(195,206,148,0.08);
+    border-color: rgba(195,206,148,0.2);
+  }
+  .co-section-title {
+    font-size: 18px;
+    letter-spacing: 0.1em;
+  }
+
+  /* Divider becomes a slim spacer between sections */
+  .co-divider {
+    height: 0;
+    margin: 0;
+    background: none;
+    border: none;
+  }
+
+  /* ── Form inputs: larger, cleaner ────────────────────────────── */
+  .co-field { gap: 7px; margin-bottom: 16px; }
+  .co-field-label { font-size: 10px; letter-spacing: 0.26em; color: rgba(255,255,255,0.3); }
+  .co-input {
+    padding: 15px 16px;
+    font-size: 14px;
+    background: rgba(255,255,255,0.03);
+    border-color: rgba(255,255,255,0.09);
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  }
+  .co-input:focus {
+    border-color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.045);
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.03);
+  }
+  .co-input::placeholder { color: rgba(255,255,255,0.18); }
+  .co-input--select {
+    background: rgba(255,255,255,0.03);
+    cursor: pointer;
+  }
+  .co-row-2 { gap: 16px; }
+
+  /* ── Payment method cards: horizontal, spacious ──────────────── */
+  .co-pay-methods {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 0;
+  }
+  .co-pay-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    padding: 20px 20px;
+    min-height: 76px;
+    background: rgba(255,255,255,0.02);
+    border-color: rgba(255,255,255,0.07);
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  }
+  .co-pay-card:hover:not(:disabled):not(.co-pay-card--off) {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.2);
+  }
+  .co-pay-card--active {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.35);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
+  }
+  .co-pay-card-icon { font-size: 26px; flex-shrink: 0; }
+  .co-pay-card-body { gap: 4px; }
+  .co-pay-card-title { font-size: 13px; letter-spacing: 0.05em; }
+  .co-pay-card-sub   { font-size: 10px; line-height: 1.6; color: rgba(255,255,255,0.3); }
+  .co-radio {
+    position: absolute;
+    top: 50%; right: 18px;
+    transform: translateY(-50%);
+    width: 16px; height: 16px;
+  }
+
+  /* COD notice */
+  .co-cod-notice { margin-top: 12px; padding: 14px 16px; }
+  .co-cod-notice p { font-size: 12px; }
+
+  /* ── Coupon row ───────────────────────────────────────────────── */
+  .co-coupon-row { gap: 10px; }
+  .co-coupon-input { font-size: 14px !important; }
+  .co-coupon-btn {
+    padding: 0 26px;
+    font-size: 11px;
+    min-width: 90px;
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.1);
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+  }
+  .co-coupon-btn:hover:not(:disabled) {
+    background: rgba(195,206,148,0.08);
+    border-color: rgba(195,206,148,0.3);
+    color: var(--sage);
+  }
+  .co-coupon-applied { padding: 14px 18px; }
+  .co-coupon-applied-title { font-size: 13px; }
+
+  /* ── Secure notice ───────────────────────────────────────────── */
+  .co-secure-notice {
+    margin: 0 48px 0;
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.015);
+    border-color: rgba(255,255,255,0.06);
+  }
+  .co-secure-notice p { font-size: 12px; line-height: 1.8; }
+
+  /* ── Form CTA (shown on desktop, hidden on mobile) ───────────── */
+  .co-pay-btn--form {
+    display: flex;
+    height: 56px;
+    font-size: 12px;
+    letter-spacing: 0.26em;
+    margin: 24px 48px 0;
+  }
+  .co-pay-btn:hover:not(:disabled) { background: var(--sage); }
+
+  /* Trust row */
+  .co-trust-row {
+    gap: 28px;
+    margin: 20px 48px 0;
+    padding-top: 18px;
+    border-top-color: rgba(255,255,255,0.05);
+  }
+  .co-trust-item { font-size: 10px; letter-spacing: 0.16em; color: rgba(255,255,255,0.2); }
+
+  /* Terms */
+  .co-terms { margin: 16px 48px 36px; }
+
+  /* ── Order summary sidebar ───────────────────────────────────── */
   .co-order-side {
-    display: block;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    height: calc(100dvh - 60px);
-    background: rgba(255,255,255,0.01);
+    height: calc(100dvh - 68px);
+    background: rgba(255,255,255,0.012);
     border-left: 1px solid rgba(255,255,255,0.06);
     position: sticky;
     top: 0;
   }
 
-  /* Mobile sticky bar hidden on desktop */
+  .co-order-card {
+    padding: 32px 32px 28px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  /* "Order Summary" heading */
+  .co-order-title {
+    font-size: 13px;
+    font-family: var(--font-body);
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin: 0 0 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .co-order-count {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--sage);
+  }
+
+  /* Item rows */
+  .co-order-item {
+    padding: 14px 0;
+    gap: 14px;
+    border-bottom-color: rgba(255,255,255,0.04);
+  }
+  .co-order-thumb {
+    width: 56px; height: 68px;
+    border-color: rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.03);
+  }
+  .co-order-initials { font-size: 13px; color: rgba(255,255,255,0.1); }
+  .co-order-name { font-size: 13px; letter-spacing: 0.06em; }
+  .co-order-meta { font-size: 10px; letter-spacing: 0.16em; color: rgba(255,255,255,0.25); }
+  .co-order-price { font-size: 15px; color: rgba(255,255,255,0.85); }
+
+  /* Totals block */
+  .co-order-totals {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top-color: rgba(255,255,255,0.06);
+  }
+  .co-order-row { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 10px; }
+  .co-order-row--disc { color: var(--sage); }
+  .co-order-final {
+    font-size: 22px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top-color: rgba(255,255,255,0.08);
+    color: var(--white);
+  }
+
+  /* Delivery estimate */
+  .co-delivery-box {
+    margin-top: 18px;
+    padding: 14px 16px;
+    background: rgba(195,206,148,0.03);
+    border: 1px solid rgba(195,206,148,0.1);
+  }
+  .co-delivery-label { font-size: 9px; letter-spacing: 0.24em; color: rgba(195,206,148,0.5); }
+  .co-delivery-val   { font-size: 13px; color: rgba(255,255,255,0.5); }
+  .co-delivery-val strong { color: var(--white); }
+
+  /* Sidebar pay button — pinned to bottom of sidebar */
+  .co-pay-btn--sidebar {
+    height: 56px;
+    font-size: 12px;
+    letter-spacing: 0.26em;
+    margin-top: auto;
+    padding-top: 0;
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+  }
+
+  /* ── Mobile sticky bar hidden on desktop ─────────────────────── */
   .co-sticky-bar { display: none; }
 
-  .co-section-title { font-size: 18px; }
-  .co-strip-total   { font-size: 20px; }
+  /* ── Success screen ─────────────────────────────────────────── */
+  .co-success { min-height: 70dvh; padding: 60px 40px; }
+  .co-success-title { font-size: 38px; }
+  .co-success-steps { max-width: 480px; }
+  .co-success-actions { max-width: 400px; margin: 0 auto; }
 }
 
 /* Small mobile (≤360px) */
