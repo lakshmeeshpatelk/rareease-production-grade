@@ -1,28 +1,12 @@
 /**
  * POST /api/shiprocket/webhook?token=<SHIPROCKET_WEBHOOK_TOKEN>
  *
- * FIXES applied vs original:
+ * ⚠️  SHIPROCKET PAUSED
+ * While SHIPROCKET_PAUSED !== 'false', incoming webhooks are acknowledged
+ * with 200 but NOT processed (no DB writes). This prevents Shiprocket from
+ * hammering the endpoint with retries while still draining its queue cleanly.
  *
- * FIX-1: CRITICAL — Webhook ID lookup priority was backwards.
- *   Original: payload?.order_id (Shiprocket's own numeric ID) ?? channel_order_id
- *   Problem:  Shiprocket's `order_id` field is THEIR numeric ID (e.g. 12345678),
- *             NOT our internal "RE-XXXX" string. Querying orders.id with that
- *             numeric ID will NEVER match — all status webhooks are silently dropped.
- *   Fix:      Prioritise `channel_order_id` (our "RE-XXXX"), fall back to `order_id`
- *             only as a last resort.
- *
- * FIX-2: tracking_number was only written when payload.tracking_url was present.
- *   AWB is always available once assigned — store it unconditionally.
- *
- * FIX-3: DB update errors were silently swallowed. Now logged.
- *
- * FIX-4: shipping_events insert errors are now logged.
- *
- * FIX-5: 'remarks' column was not included in shipping_events insert; fixed.
- *
- * FIX-6: Missing SHIPROCKET_WEBHOOK_TOKEN now logs a clear startup warning.
- *
- * FIX-7: Return 200 on unresolvable payloads so Shiprocket stops retrying them.
+ * To re-enable: set SHIPROCKET_PAUSED=false in .env and redeploy.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -42,13 +26,11 @@ const SR_STATUS_MAP: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
-  // FIX-6: Warn loudly if token is not configured
   const expectedToken = process.env.SHIPROCKET_WEBHOOK_TOKEN;
   if (!expectedToken) {
     console.error(
       '[shiprocket/webhook] SHIPROCKET_WEBHOOK_TOKEN is not set. ' +
-      'All webhook requests will be rejected. ' +
-      'Set this variable in your environment AND in the Shiprocket Dashboard → Webhooks.'
+      'All webhook requests will be rejected.'
     );
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -58,6 +40,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // ── Pause guard ──────────────────────────────────────────────────────────
+  // Acknowledge with 200 so Shiprocket stops retrying, but do not process.
+  if (process.env.SHIPROCKET_PAUSED !== 'false') {
+    console.info('[shiprocket/webhook] PAUSED — webhook received but not processed.');
+    return NextResponse.json({ ok: false, reason: 'paused' }, { status: 200 });
+  }
+
   let payload: any;
   try {
     payload = await req.json();
@@ -65,9 +54,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  // FIX-1: CRITICAL — channel_order_id IS our internal "RE-XXXX" ID.
-  //   payload.order_id is Shiprocket's own numeric ID and will NEVER
-  //   match our orders.id text primary key. Priority must be reversed.
   const orderId =
     payload?.channel_order_id?.toString() ??
     payload?.order_id?.toString()         ??
@@ -84,7 +70,6 @@ export async function POST(req: NextRequest) {
     console.warn('[shiprocket/webhook] Payload has no identifiable order ID', {
       keys: Object.keys(payload ?? {}),
     });
-    // FIX-7: Return 200 — unresolvable, Shiprocket should not retry
     return NextResponse.json({ ok: false, reason: 'missing_order_id' }, { status: 200 });
   }
 
@@ -95,7 +80,6 @@ export async function POST(req: NextRequest) {
   if (newStatus) updatePayload.status         = newStatus;
   if (awb)       updatePayload.awb_code       = awb;
   if (courier)   updatePayload.courier        = courier;
-  // FIX-2: Always store AWB as tracking reference (not gated on tracking_url)
   if (awb)       updatePayload.tracking_number = awb;
 
   if (Object.keys(updatePayload).length > 0) {
@@ -104,7 +88,6 @@ export async function POST(req: NextRequest) {
       .update(updatePayload)
       .eq('id', orderId);
 
-    // FIX-3: log failures instead of silently dropping them
     if (updateErr) {
       console.error('[shiprocket/webhook] Order update failed:', {
         orderId, updatePayload, error: updateErr.message,
@@ -118,11 +101,10 @@ export async function POST(req: NextRequest) {
       awb:      awb      || null,
       status:   srStatus,
       location: location || null,
-      remarks:  remarks  || null,  // FIX-5: column existed but was never populated
+      remarks:  remarks  || null,
       event_at: eventAt,
     });
 
-    // FIX-4: log insert failures
     if (eventErr) {
       console.error('[shiprocket/webhook] shipping_events insert failed:', {
         orderId, srStatus, error: eventErr.message,

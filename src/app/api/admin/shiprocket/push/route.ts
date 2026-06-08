@@ -1,30 +1,11 @@
 /**
  * POST /api/admin/shiprocket/push
- * Manually push an order to Shiprocket (retry / initial push for failed orders).
  *
- * FIXES applied vs original:
+ * ⚠️  SHIPROCKET PAUSED
+ * Returns 503 while SHIPROCKET_PAUSED !== 'false'.
+ * Admin is handling all orders manually.
  *
- * FIX-1: CRITICAL — Request body key mismatch.
- *   Admin UI sends: { orderId: "RE-XXXX" }  (camelCase)
- *   Route expected: { order_id: "RE-XXXX" } (snake_case)
- *   Result: order_id was always undefined → always returned 400 "order_id is required".
- *   Fix: Accept BOTH keys so existing callers are not broken.
- *
- * FIX-2: CRITICAL — Response payload mismatch.
- *   Admin UI expects: { awb_code?: string; courier_name?: string }
- *   Route returned:   { ok: true, shiprocket_order_id: number }
- *   Result: Admin UI never showed AWB/courier and never updated local state.
- *   Fix: Return awb_code and courier_name when available.
- *
- * FIX-3: No duplicate push guard.
- *   If the automated push in the webhook already ran, re-pushing creates a
- *   duplicate order in Shiprocket. Add a guard with an admin override flag.
- *
- * FIX-4: Product names sent to Shiprocket were "Product <uuid>" — useless in
- *   Shiprocket's dashboard. Now fetched from the variants/products join.
- *
- * FIX-5: items select was missing product_id — the Shiprocket payload now
- *   gets the proper product_id for each line item.
+ * To re-enable: set SHIPROCKET_PAUSED=false in .env and redeploy.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -37,6 +18,17 @@ export async function POST(req: NextRequest) {
   const authError = await requireAdmin(req);
   if (authError) return authError;
 
+  // ── Pause guard ──────────────────────────────────────────────────────────
+  if (process.env.SHIPROCKET_PAUSED !== 'false') {
+    return NextResponse.json(
+      {
+        error:  'Shiprocket is currently paused. Orders are being handled manually by the admin.',
+        paused: true,
+      },
+      { status: 503 }
+    );
+  }
+
   let body: { order_id?: string; orderId?: string; force?: boolean };
   try {
     body = await req.json();
@@ -44,7 +36,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
   }
 
-  // FIX-1: Accept both camelCase (from admin UI) and snake_case
+  // Accept both camelCase (from admin UI) and snake_case
   const order_id = body.order_id ?? body.orderId;
   if (!order_id) {
     return NextResponse.json({ error: 'order_id is required' }, { status: 400 });
@@ -52,7 +44,6 @@ export async function POST(req: NextRequest) {
 
   const supabase = createAdmin() as any;
 
-  // Fetch full order
   const { data: order, error: fetchErr } = await supabase
     .from('orders')
     .select('id, total, shipping_address, payment_method, shiprocket_order_id')
@@ -63,7 +54,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Order not found' }, { status: 404 });
   }
 
-  // FIX-3: Guard against duplicate pushes (unless admin explicitly forces)
+  // Guard against duplicate pushes (unless admin explicitly forces)
   if (order.shiprocket_order_id && !body.force) {
     return NextResponse.json(
       {
@@ -75,7 +66,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // FIX-4 & FIX-5: Fetch items WITH product names via variants→products join
+  // Fetch items WITH product names via variants→products join
   const { data: items, error: itemsErr } = await supabase
     .from('order_items')
     .select('product_id, variant_id, quantity, price, variants(products(name))')
@@ -85,13 +76,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Order has no items' }, { status: 400 });
   }
 
-  // Map items to include resolved product name
   const enrichedItems = items.map((i: any) => ({
     product_id:   i.product_id,
     variant_id:   i.variant_id,
     quantity:     i.quantity,
     price:        i.price,
-    // FIX-4: Use real product name; fallback to variant_id if join didn't resolve
     product_name: i.variants?.products?.name ?? i.variant_id,
   }));
 
@@ -105,7 +94,6 @@ export async function POST(req: NextRequest) {
       payment_method:   order.payment_method === 'cod' ? 'cod' : 'prepaid',
     });
 
-    // Persist Shiprocket IDs (and AWB/courier if returned immediately)
     const updatePayload: Record<string, any> = {
       shiprocket_order_id:    sr.order_id,
       shiprocket_shipment_id: sr.shipment_id,
@@ -130,7 +118,6 @@ export async function POST(req: NextRequest) {
       meta:        { shiprocket_order_id: sr.order_id, forced: !!body.force },
     });
 
-    // FIX-2: Return awb_code and courier_name so admin UI can display them
     return NextResponse.json({
       ok:                  true,
       shiprocket_order_id: sr.order_id,

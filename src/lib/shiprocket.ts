@@ -1,14 +1,13 @@
 /**
- * src/lib/shiprocket.ts — FIXED
+ * src/lib/shiprocket.ts
  *
- * Changes from original:
- *  FIX-1: Promise-based mutex prevents concurrent cold-start token races.
- *  FIX-2: Token validated as non-empty string before caching.
- *  FIX-3: Item name uses product_name when provided; fallback is variant_id
- *          (not "Product <uuid>" which is both ugly and wrong).
- *  FIX-4: cancelShiprocketOrder() added — called by orders/cancel route.
- *  FIX-5: SROrderResult now surfaces awb_code and courier when returned
- *          synchronously by Shiprocket (so push route can store them immediately).
+ * ⚠️  SHIPROCKET PAUSED — Admin is handling all orders manually.
+ *
+ * All exported functions are no-ops that log a warning and return
+ * immediately without contacting the Shiprocket API.
+ *
+ * To re-enable, set SHIPROCKET_PAUSED=false in your .env
+ * (or remove the env var entirely) and redeploy.
  */
 
 const SR_BASE = 'https://apiv2.shiprocket.in/v1/external';
@@ -44,6 +43,13 @@ export interface SROrderResult {
   courier?:    string;
 }
 
+// ─── Pause flag ───────────────────────────────────────────────────────────────
+
+function isPaused(): boolean {
+  // Paused when the env var is absent OR set to anything other than "false"
+  return process.env.SHIPROCKET_PAUSED !== 'false';
+}
+
 // ─── Token cache with Promise mutex ───────────────────────────────────────────
 
 let _token:      string | null        = null;
@@ -54,7 +60,6 @@ async function getToken(): Promise<string> {
   const now = Date.now();
   if (_token && now < _tokenExpiry - 3_600_000) return _token;
 
-  // FIX-1: Lock — wait if a refresh is already in flight
   if (_refreshing) return _refreshing;
 
   _refreshing = (async (): Promise<string> => {
@@ -72,7 +77,6 @@ async function getToken(): Promise<string> {
       });
       const data = await res.json().catch(() => ({}));
 
-      // FIX-2: Validate token is a non-empty string
       if (!res.ok || typeof data.token !== 'string' || !data.token) {
         throw new Error(`[Shiprocket] Auth failed: ${data?.message ?? res.status}`);
       }
@@ -81,7 +85,7 @@ async function getToken(): Promise<string> {
       _tokenExpiry = Date.now() + 23 * 60 * 60 * 1000;
       return _token!;
     } finally {
-      _refreshing = null; // always release the lock
+      _refreshing = null;
     }
   })();
 
@@ -118,6 +122,15 @@ async function srFetch(path: string, opts: RequestInit, retry = true): Promise<a
 // ─── Create Shiprocket order ───────────────────────────────────────────────────
 
 export async function createShiprocketOrder(input: SROrderInput): Promise<SROrderResult> {
+  if (isPaused()) {
+    console.warn(
+      `[Shiprocket] PAUSED — skipping createShiprocketOrder for order ${input.order_id}. ` +
+      'Admin is handling fulfilment manually. Set SHIPROCKET_PAUSED=false to re-enable.'
+    );
+    // Return a sentinel so callers that check sr?.order_id get nothing
+    return { order_id: 0, shipment_id: 0, status: 'paused' };
+  }
+
   const a = input.shipping_address;
 
   const payload = {
@@ -138,7 +151,6 @@ export async function createShiprocketOrder(input: SROrderInput): Promise<SROrde
     billing_phone:         a.phone,
     shipping_is_billing:   true,
     order_items: input.items.map(item => ({
-      // FIX-3: Use real product name; fallback to variant_id not "Product <uuid>"
       name:          item.product_name ?? item.variant_id,
       sku:           item.variant_id,
       units:         item.quantity,
@@ -168,15 +180,22 @@ export async function createShiprocketOrder(input: SROrderInput): Promise<SROrde
     order_id:    data?.order_id    as number,
     shipment_id: data?.shipment_id as number,
     status:      data?.status      as string,
-    // FIX-5: Surface AWB/courier if Shiprocket returns them immediately
     awb_code:    data?.awb_code    as string | undefined,
     courier:     data?.courier     as string | undefined,
   };
 }
 
-// ─── FIX-4: Cancel a Shiprocket order ─────────────────────────────────────────
+// ─── Cancel a Shiprocket order ─────────────────────────────────────────────────
 
 export async function cancelShiprocketOrder(shiprocketOrderId: number): Promise<void> {
+  if (isPaused()) {
+    console.warn(
+      `[Shiprocket] PAUSED — skipping cancelShiprocketOrder for SR order ${shiprocketOrderId}. ` +
+      'Set SHIPROCKET_PAUSED=false to re-enable.'
+    );
+    return;
+  }
+
   await srFetch('/orders/cancel', {
     method: 'POST',
     body:   JSON.stringify({ ids: [shiprocketOrderId] }),
