@@ -15,7 +15,7 @@ interface Address {
   name: string; phone: string; email: string;
   line1: string; line2: string; city: string; state: string; pincode: string;
 }
-type PayMethod = 'online' | 'cod';
+type PayMethod = 'online';
 
 /**
  * Stores the server-computed discount amount and a human-readable label.
@@ -81,9 +81,7 @@ function OrderSuccess({ orderId, method, name, onClose, onTrack }: {
       <p className="co-success-sub">
         Thank you, <strong>{name}</strong>!<br />
         Order <strong className="co-success-id">#{orderId}</strong> confirmed.
-        {method === 'cod'
-          ? ' Keep the exact amount ready at delivery.'
-          : ' Confirmation sent to your email shortly.'}
+        {' '}Confirmation sent to your email shortly.
       </p>
       <div className="co-success-steps">
         <p className="co-success-steps-label">What happens next</p>
@@ -244,7 +242,6 @@ export default function CheckoutOverlay() {
   const discount   = useMemo(() => appliedCoupon?.amount ?? 0, [appliedCoupon]);
   const shipping   = useMemo(() => calcShipping(subtotal - discount), [subtotal, discount]);
   const grandTotal = useMemo(() => Math.max(0, subtotal + shipping - discount), [subtotal, shipping, discount]);
-  const codBlocked = grandTotal > 2000;
 
   // ── Stable field change handler ───────────────────────────────────────────────
   function field(key: keyof Address) {
@@ -327,44 +324,6 @@ export default function CheckoutOverlay() {
 
     const address = readAddress();
     setIsProcessing(true);
-
-    // ── COD path ───────────────────────────────────────────────────────────────
-    // FIX: COD goes to /api/orders/cod (separate route from online payments)
-    // FIX: field names are now snake_case to match API expectations
-    if (payMethod === 'cod') {
-      try {
-        const r = await fetch('/api/orders/cod', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
-            items: items.map(i => ({
-              product_id: i.productId,
-              variant_id: i.variantId,
-              quantity:   i.quantity,
-              price:      i.price,
-            })),
-            address,
-            coupon_code: appliedCoupon ? appliedCouponCode : undefined,
-          }),
-        });
-
-        if (!r.ok) {
-          const e = await r.json().catch(() => ({})) as { error?: string };
-          throw new Error(e.error ?? 'Failed to place COD order');
-        }
-
-        // FIX: API returns order_id (snake_case)
-        const { order_id } = await r.json();
-        clearCart();
-        setSuccessOrder({ id: order_id, method: 'cod' });
-
-      } catch (err) {
-        addToast('✕', err instanceof Error ? err.message : 'Could not place order. Please try again.');
-      } finally {
-        setIsProcessing(false);
-      }
-      return;
-    }
 
     // ── Online payment path ────────────────────────────────────────────────────
     try {
@@ -512,9 +471,7 @@ export default function CheckoutOverlay() {
     >
       {isProcessing
         ? <span className="co-spinner-wrap"><span className="co-spinner" />Processing…</span>
-        : payMethod === 'cod'
-          ? `Place COD Order — ${formatPrice(grandTotal)}`
-          : `Pay ${formatPrice(grandTotal)} Securely →`}
+        : `Pay ${formatPrice(grandTotal)} Securely →`}
     </button>
   );
 
@@ -698,41 +655,16 @@ export default function CheckoutOverlay() {
                     <div className="co-pay-methods">
                       <button
                         type="button"
-                        className={`co-pay-card${payMethod === 'online' ? ' co-pay-card--active' : ''}`}
-                        onClick={() => setPayMethod('online')}
+                        className="co-pay-card co-pay-card--active"
                       >
                         <span className="co-pay-card-icon">💳</span>
                         <div className="co-pay-card-body">
                           <span className="co-pay-card-title">Pay Online</span>
                           <span className="co-pay-card-sub">Cards · UPI · Net Banking · Wallets</span>
                         </div>
-                        <span className={`co-radio${payMethod === 'online' ? ' co-radio--on' : ''}`} aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        className={`co-pay-card${payMethod === 'cod' ? ' co-pay-card--active' : ''}${codBlocked ? ' co-pay-card--off' : ''}`}
-                        onClick={() => !codBlocked && setPayMethod('cod')}
-                        disabled={codBlocked}
-                      >
-                        <span className="co-pay-card-icon">💵</span>
-                        <div className="co-pay-card-body">
-                          <span className="co-pay-card-title">Cash on Delivery</span>
-                          <span className="co-pay-card-sub">
-                            {codBlocked ? 'Not available above ₹2,000' : 'Pay when your order arrives'}
-                          </span>
-                        </div>
-                        <span className={`co-radio${payMethod === 'cod' ? ' co-radio--on' : ''}`} aria-hidden="true" />
+                        <span className="co-radio co-radio--on" aria-hidden="true" />
                       </button>
                     </div>
-                    {payMethod === 'cod' && (
-                      <div className="co-cod-notice">
-                        <span>💡</span>
-                        <p>
-                          COD orders may take slightly longer. Please keep the exact amount ready.
-                          Only available for orders up to ₹2,000.
-                        </p>
-                      </div>
-                    )}
                   </div>
 
                   <div className="co-divider" />
@@ -779,12 +711,8 @@ export default function CheckoutOverlay() {
 
                   {/* Security notice */}
                   <div className="co-secure-notice">
-                    <span>{payMethod === 'cod' ? '🚚' : '🔒'}</span>
-                    <p>
-                      {payMethod === 'cod'
-                        ? <><strong>Cash on Delivery</strong> — Pay {formatPrice(grandTotal)} when your order arrives.</>
-                        : <><strong>Secure payment</strong> via Razorpay. Your card details are never stored by us.</>}
-                    </p>
+                    <span>🔒</span>
+                    <p><strong>Secure payment</strong> via Razorpay. Your card details are never stored by us.</p>
                   </div>
 
                   {/* CTA — desktop (mobile uses sticky bar below) */}
@@ -882,7 +810,7 @@ export default function CheckoutOverlay() {
                     ? <span className="co-spinner-wrap">
                         <span className="co-spinner co-spinner--dark" />Processing…
                       </span>
-                    : payMethod === 'cod' ? 'Place Order →' : 'Pay Securely →'}
+                    : 'Pay Securely →'}
                 </button>
               </div>
             </>
