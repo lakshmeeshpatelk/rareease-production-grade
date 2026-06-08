@@ -220,14 +220,14 @@ export default function CartDrawer() {
                   <button className="cart-continue-btn" onClick={closeCart}>
                     Continue Shopping
                   </button>
-                  <div className="checkout-trust-row" style={{ justifyContent: 'center', marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div className="checkout-trust-row" style={{ justifyContent: 'center', marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
                     {[
                       { icon: '🔒', label: 'Secure' },
                       { icon: '✦', label: 'Authentic' },
                       { icon: '🚚', label: 'Free Shipping' },
                     ].map(({ icon, label }) => (
-                      <div key={label} className="checkout-trust-item">
-                        <span style={{ fontSize: 12 }}>{icon}</span>
+                      <div key={label} className="checkout-trust-item" style={{ fontSize: 8, gap: 3, letterSpacing: '0.15em' }}>
+                        <span style={{ fontSize: 9 }}>{icon}</span>
                         {label}
                       </div>
                     ))}
