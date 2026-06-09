@@ -34,7 +34,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdmin }    from '@/lib/supabaseAdmin';
 import { verifyRazorpayWebhook }          from '@/lib/razorpay';
-import { sendOrderConfirmationEmail }     from '@/lib/email';
+import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from '@/lib/email';
 import { createShiprocketOrder }          from '@/lib/shiprocket';
 import { writeAuditLog }                  from '@/lib/auditLog';
 
@@ -188,6 +188,27 @@ export async function POST(req: NextRequest) {
         console.error('[webhook] email send failed:', e.message);
         // Non-fatal — order is confirmed even if email fails
       }
+    }
+
+    // ── Admin notification email ──────────────────────────────────
+    try {
+      const addr      = dbOrder.shipping_address as any;
+      const orderItemsForEmail = (items ?? []).map((i: any) => ({
+        name:     i.name,
+        quantity: i.quantity,
+        price:    i.price,
+      }));
+      await sendAdminNewOrderEmail({
+        orderId:       dbOrder.id,
+        total:         dbOrder.total,
+        paymentMethod: 'online',
+        customerName:  addr?.name  ?? '',
+        customerEmail: addr?.email ?? '',
+        customerPhone: addr?.phone ?? '',
+        items:         orderItemsForEmail,
+      });
+    } catch (e: any) {
+      console.error('[webhook] admin notification email error:', e.message);
     }
 
     // ── FIX: Push to Shiprocket with a proper await + timeout instead

@@ -19,7 +19,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdmin }    from '@/lib/supabaseAdmin';
 import { generateOrderId }               from '@/lib/orderUtils';
-import { sendOrderConfirmationEmail }    from '@/lib/email';
+import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from '@/lib/email';
 import { createShiprocketOrder }         from '@/lib/shiprocket';
 import { checkRateLimit }               from '@/lib/rateLimit';
 
@@ -253,6 +253,21 @@ export async function POST(req: NextRequest) {
     } catch (e: any) {
       console.error('[cod] email error:', e.message);
     }
+  }
+
+  // ── Admin notification email ──────────────────────────────────────
+  try {
+    await sendAdminNewOrderEmail({
+      orderId,
+      total,
+      paymentMethod: 'cod',
+      customerName:  address.name,
+      customerEmail: address.email ?? '',
+      customerPhone: address.phone,
+      items:         verifiedItems,
+    });
+  } catch (e: any) {
+    console.error('[cod] admin notification email error:', e.message);
   }
 
   // ── Shiprocket ────────────────────────────────────────────────────

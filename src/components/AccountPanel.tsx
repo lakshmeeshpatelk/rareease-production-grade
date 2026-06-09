@@ -699,18 +699,28 @@ export default function AccountPanel() {
                     if (!returnReason) { addToast('⚠', 'Please select a reason'); return; }
                     if (!user || !returnOrder) { addToast('✕', 'Sign in required'); return; }
                     try {
+                      // Call the server route so the admin gets notified by email
                       const { getClient } = await import('@/lib/supabase');
                       const sb = getClient();
-                      const { error } = await (sb as any)
-                        .from('exchange_requests')
-                        .insert({
+                      const { data: { session } } = await (sb as any).auth.getSession();
+                      const token = session?.access_token ?? '';
+
+                      const res = await fetch('/api/exchange-request', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                        },
+                        body: JSON.stringify({
                           order_id: returnOrder,
-                          user_id: user.id,
                           type: returnType === 'return' ? 'cancellation' : 'exchange',
                           reason: returnReason,
-                          status: 'pending',
-                        });
-                      if (error) throw error;
+                        }),
+                      });
+                      if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        throw new Error(err.error ?? 'Request failed');
+                      }
                       setReturnSubmitted(true);
                     } catch (err) {
                       console.error('[AccountPanel] return submit failed:', err);
