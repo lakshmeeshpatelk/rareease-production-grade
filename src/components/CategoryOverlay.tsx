@@ -106,6 +106,7 @@ export default function CategoryOverlay() {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.25 }}
+        className="cat-overlay-root"
         style={{
           position: 'fixed', inset: 0,
           background: 'var(--black)',

@@ -496,8 +496,11 @@ html, body { overscroll-behavior-x: none; }
 /* ══════════════════════════════════════════════════════════════════
    CATEGORY / FULL-COLLECTION OVERLAY (unchanged — already solid)
 ══════════════════════════════════════════════════════════════════ */
-.co-header {
+.cat-overlay-root .co-header {
   flex-shrink: 0;
+  /* Override globals.css checkout co-header (height:56px, display:flex, align-items:center) */
+  display: block;
+  height: auto;
   background: rgba(4,4,4,0.98);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
@@ -614,7 +617,7 @@ html, body { overscroll-behavior-x: none; }
 .co-empty-msg { font-size: 13px; color: var(--mid-gray); letter-spacing: 0.1em; }
 .co-empty-clear { margin-top: 16px; padding: 10px 24px; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); background: none; border: 1px solid rgba(195,206,148,0.3); cursor: pointer; min-height: 44px; }
 @media (min-width: 769px) {
-  .co-header { padding: 24px 48px 0; }
+  .cat-overlay-root .co-header { padding: 24px 48px 0; }
   .co-grid-scroll { padding: 24px 48px 60px; }
   .co-product-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
   /* Restore single-row controls on desktop */
