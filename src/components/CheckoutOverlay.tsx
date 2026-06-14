@@ -8,6 +8,7 @@ import { formatPrice, calcShipping } from '@/lib/utils';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 import { useOverlayHistory } from '@/lib/useOverlayHistory';
 import { checkPincode, type PincodeResult } from '@/lib/pincode';
+import { getClient } from '@/lib/supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,17 @@ const STATES = [
   'Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh',
   'Uttarakhand','West Bengal','Delhi','Jammu & Kashmir','Ladakh','Other',
 ];
+
+// Maps a state name from the pincode API (e.g. "NCT OF DELHI", "Jammu and Kashmir")
+// to the closest matching option in STATES.
+function matchState(apiState: string): string {
+  const norm = apiState.trim().toLowerCase().replace(/\band\b/g, '&').replace(/\s+/g, ' ');
+  const found = STATES.find(s => s.toLowerCase().replace(/\band\b/g, '&').replace(/\s+/g, ' ') === norm);
+  if (found) return found;
+  if (norm.includes('delhi')) return 'Delhi';
+  if (norm.includes('jammu') || norm.includes('kashmir')) return 'Jammu & Kashmir';
+  return '';
+}
 
 // ─── Sub-components (unchanged from original) ─────────────────────────────────
 
@@ -229,7 +241,20 @@ export default function CheckoutOverlay() {
   useEffect(() => {
     if (pincodeValue.length !== 6) { setPincodeResult({ status: 'idle' }); return; }
     setPincodeResult({ status: 'loading' });
-    checkPincode(pincodeValue).then(setPincodeResult);
+    checkPincode(pincodeValue).then(result => {
+      setPincodeResult(result);
+      if (result.status === 'valid') {
+        // Autofill State from pincode lookup
+        if (domRefs.current.state) {
+          const matched = matchState(result.state);
+          if (matched) (domRefs.current.state as HTMLSelectElement).value = matched;
+        }
+        // Autofill City only if the user hasn't typed one yet
+        if (domRefs.current.city && !(domRefs.current.city as HTMLInputElement).value.trim()) {
+          (domRefs.current.city as HTMLInputElement).value = result.district;
+        }
+      }
+    });
   }, [pincodeValue]);
 
   // ── Payment state ────────────────────────────────────────────────────────────
@@ -247,6 +272,7 @@ export default function CheckoutOverlay() {
   function field(key: keyof Address) {
     return {
       ref: fieldRef(key),
+      name: key,
       defaultValue: '',
       onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         if (domRefs.current[key]) (domRefs.current[key] as HTMLInputElement).value = e.target.value;
@@ -328,9 +354,13 @@ export default function CheckoutOverlay() {
     // ── Online payment path ────────────────────────────────────────────────────
     try {
       // 1. Create order + get Razorpay order details
+      const { data: { session } } = await getClient().auth.getSession();
       const orderRes = await fetch('/api/payments/create', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body:    JSON.stringify({
           items: items.map(i => ({
             product_id: i.productId,
@@ -637,7 +667,7 @@ export default function CheckoutOverlay() {
                       </FormField>
                     </div>
                     <FormField label="State" required error={fieldErrors.state}>
-                      <StableSelect className="co-input co-input--select" {...field('state')}>
+                      <StableSelect className="co-input co-input--select" autoComplete="address-level1" {...field('state')}>
                         <option value="">Select state</option>
                         {STATES.map(s => <option key={s} value={s}>{s}</option>)}
                       </StableSelect>

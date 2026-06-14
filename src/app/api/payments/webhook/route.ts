@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
     // Decrement inventory (via Supabase stored function with row-level lock)
     const { data: items } = await supabase
       .from('order_items')
-      .select('variant_id, quantity')
+      .select('variant_id, quantity, price, product:products(name)')
       .eq('order_id', dbOrder.id);
 
     if (items?.length) {
@@ -168,12 +168,16 @@ export async function POST(req: NextRequest) {
         const emailAddr = (dbOrder.shipping_address as any)?.email ?? '';
         const name      = (dbOrder.shipping_address as any)?.name  ?? 'Customer';
         if (emailAddr) {
+          const itemsForEmail = (items ?? []).map((i: any) => ({
+            ...i,
+            name: (i.product as any)?.name ?? i.name,
+          }));
           await sendOrderConfirmationEmail({
             to:      emailAddr,
             name,
             orderId: dbOrder.id,
             total:   dbOrder.total,
-            items:   items ?? [],
+            items:   itemsForEmail,
             address: dbOrder.shipping_address as any,
             paymentMethod: 'online',
           });
@@ -194,7 +198,7 @@ export async function POST(req: NextRequest) {
     try {
       const addr      = dbOrder.shipping_address as any;
       const orderItemsForEmail = (items ?? []).map((i: any) => ({
-        name:     i.name,
+        name:     (i.product as any)?.name ?? i.name,
         quantity: i.quantity,
         price:    i.price,
       }));

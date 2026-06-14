@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
     return { ...item, price: unitPrice };
   });
 
-  const shipping = subtotal >= 999 ? 0 : 99;
+  const shipping = subtotal >= 1499 ? 0 : 99; // must match SHIPPING_FREE_THRESHOLD in utils.ts
 
   let discountAmount = 0;
   let validatedCoupon = '';
